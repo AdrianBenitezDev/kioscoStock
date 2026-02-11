@@ -132,10 +132,16 @@
             <p id="cash-total-amount" class="cash-value">$0.00</p>
           </article>
           <article class="cash-card">
+            <h4>Costo del dia</h4>
+            <p id="cash-total-cost" class="cash-value">$0.00</p>
+          </article>
+          <article class="cash-card">
             <h4>Ganancia del dia</h4>
             <p id="cash-profit-amount" class="cash-value">$0.00</p>
           </article>
         </div>
+
+        <p id="cash-closure-status" class="subtitle"></p>
 
         <div class="scan-actions">
           <button id="close-shift-btn" type="button">TERMINAR TURNO</button>
@@ -158,6 +164,26 @@
             <tbody id="cash-sales-table-body">
               <tr>
                 <td colspan="5">No hay ventas registradas hoy.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Historial de cierres</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Ventas</th>
+                <th>Total</th>
+                <th>Ganancia</th>
+              </tr>
+            </thead>
+            <tbody id="cash-closures-table-body">
+              <tr>
+                <td colspan="5">No hay cierres registrados.</td>
               </tr>
             </tbody>
           </table>

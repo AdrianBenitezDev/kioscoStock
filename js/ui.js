@@ -125,6 +125,7 @@ export function renderCashSummary(summary) {
   dom.cashSalesCount.textContent = String(summary.salesCount || 0);
   dom.cashItemsCount.textContent = String(summary.itemsCount || 0);
   dom.cashTotalAmount.textContent = `$${Number(summary.totalAmount || 0).toFixed(2)}`;
+  dom.cashTotalCost.textContent = `$${Number(summary.totalCost || 0).toFixed(2)}`;
   dom.cashProfitAmount.textContent = `$${Number(summary.profitAmount || 0).toFixed(2)}`;
 }
 
@@ -159,6 +160,38 @@ export function setCashFeedback(message, kind = "error") {
 export function clearCashFeedback() {
   dom.cashFeedback.style.color = "var(--danger)";
   dom.cashFeedback.textContent = "";
+}
+
+export function renderCashClosureStatus(todayClosure) {
+  if (!todayClosure) {
+    dom.cashClosureStatus.textContent = "Turno abierto: aun no se registro cierre hoy.";
+    return;
+  }
+
+  const time = formatTime(todayClosure.createdAt);
+  dom.cashClosureStatus.textContent =
+    `Turno cerrado hoy a las ${time}. Monto: $${Number(todayClosure.totalAmount || 0).toFixed(2)}.`;
+}
+
+export function renderCashClosuresTable(closures) {
+  if (!closures || closures.length === 0) {
+    dom.cashClosuresTableBody.innerHTML = '<tr><td colspan="5">No hay cierres registrados.</td></tr>';
+    return;
+  }
+
+  dom.cashClosuresTableBody.innerHTML = closures
+    .map((closure) => {
+      return [
+        "<tr>",
+        `<td>${escapeHtml(closure.dateKey || "-")}</td>`,
+        `<td>${escapeHtml(closure.username || "-")}</td>`,
+        `<td>${Number(closure.salesCount || 0)}</td>`,
+        `<td>$${Number(closure.totalAmount || 0).toFixed(2)}</td>`,
+        `<td>$${Number(closure.profitAmount || 0).toFixed(2)}</td>`,
+        "</tr>"
+      ].join("");
+    })
+    .join("");
 }
 
 function formatTime(isoDate) {

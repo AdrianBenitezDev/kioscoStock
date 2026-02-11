@@ -15,6 +15,8 @@ import {
   clearCashFeedback,
   clearScanFeedback,
   clearProductFeedback,
+  renderCashClosuresTable,
+  renderCashClosureStatus,
   renderCashSalesTable,
   renderCashScopeLabel,
   renderCashSummary,
@@ -266,6 +268,7 @@ async function stopAnyScanner({ targetMode = null, showMessage = false } = {}) {
 
 async function refreshCashPanel() {
   clearCashFeedback();
+  dom.closeShiftBtn.disabled = false;
   const snapshot = await getCashSnapshotForToday();
   if (!snapshot.ok) {
     if (snapshot.requiresLogin) {
@@ -279,6 +282,9 @@ async function refreshCashPanel() {
   renderCashScopeLabel(snapshot.scopeLabel);
   renderCashSummary(snapshot.summary);
   renderCashSalesTable(snapshot.sales);
+  renderCashClosureStatus(snapshot.todayClosure);
+  renderCashClosuresTable(snapshot.recentClosures);
+  dom.closeShiftBtn.disabled = Boolean(snapshot.todayClosure);
 }
 
 async function handleCloseShift() {

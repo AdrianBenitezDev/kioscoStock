@@ -1,5 +1,6 @@
 import { getCurrentSession } from "./auth.js";
 import {
+  getCashClosuresByKioscoAndDateRange,
   getCashClosureByKey,
   getSalesByKioscoAndDateRange,
   getSalesByKioscoUserAndDateRange,
@@ -16,6 +17,10 @@ export async function getCashSnapshotForToday() {
   const sales = await loadScopedSales(session, startIso, endIso);
   const orderedSales = sales.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const summary = summarizeSales(orderedSales);
+  const scopeKey = getScopeKey(session);
+  const closureKey = buildClosureKey(session.kioscoId, dateKey, scopeKey);
+  const todayClosure = await getCashClosureByKey(closureKey);
+  const recentClosures = await listRecentClosures(session, scopeKey);
   const scopeLabel = session.role === "dueno" ? "Vista: todo el kiosco" : "Vista: solo tus ventas";
 
   return {
@@ -23,7 +28,9 @@ export async function getCashSnapshotForToday() {
     sales: orderedSales,
     summary,
     dateKey,
-    scopeLabel
+    scopeLabel,
+    todayClosure,
+    recentClosures
   };
 }
 
@@ -40,8 +47,8 @@ export async function closeTodayShift() {
     return { ok: false, error: "No hay ventas hoy para cerrar turno." };
   }
 
-  const scopeKey = session.role === "dueno" ? "all" : session.userId;
-  const closureKey = `${session.kioscoId}::${dateKey}::${scopeKey}`;
+  const scopeKey = getScopeKey(session);
+  const closureKey = buildClosureKey(session.kioscoId, dateKey, scopeKey);
   const existing = await getCashClosureByKey(closureKey);
   if (existing) {
     return {
@@ -86,6 +93,15 @@ function summarizeSales(sales) {
   return { salesCount, itemsCount, totalAmount, totalCost, profitAmount };
 }
 
+async function listRecentClosures(session, scopeKey) {
+  const { startIso, endIso } = getRecentDaysRangeIso(30);
+  const closures = await getCashClosuresByKioscoAndDateRange(session.kioscoId, startIso, endIso);
+  return closures
+    .filter((closure) => closure.closureKey === buildClosureKey(session.kioscoId, closure.dateKey, scopeKey))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 10);
+}
+
 async function loadScopedSales(session, startIso, endIso) {
   if (session.role === "dueno") {
     return getSalesByKioscoAndDateRange(session.kioscoId, startIso, endIso);
@@ -106,4 +122,19 @@ function getTodayRangeIso() {
     endIso: end.toISOString(),
     dateKey
   };
+}
+
+function getRecentDaysRangeIso(daysBack) {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  return { startIso: start.toISOString(), endIso: end.toISOString() };
+}
+
+function getScopeKey(session) {
+  return session.role === "dueno" ? "all" : session.userId;
+}
+
+function buildClosureKey(kioscoId, dateKey, scopeKey) {
+  return `${kioscoId}::${dateKey}::${scopeKey}`;
 }

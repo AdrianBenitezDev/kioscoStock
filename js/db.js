@@ -188,3 +188,15 @@ export async function getCashClosureByKey(closureKey) {
     request.onerror = () => reject(request.error);
   });
 }
+
+export async function getCashClosuresByKioscoAndDateRange(kioscoId, startIso, endIso) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.cashClosures, "readonly");
+    const closures = tx.objectStore(STORES.cashClosures);
+    const range = IDBKeyRange.bound([kioscoId, startIso], [kioscoId, endIso]);
+    const request = closures.index("byKioscoCreatedAt").getAll(range);
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}

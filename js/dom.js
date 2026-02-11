@@ -31,9 +31,12 @@ export const dom = {
   cashSalesCount: document.getElementById("cash-sales-count"),
   cashItemsCount: document.getElementById("cash-items-count"),
   cashTotalAmount: document.getElementById("cash-total-amount"),
+  cashTotalCost: document.getElementById("cash-total-cost"),
   cashProfitAmount: document.getElementById("cash-profit-amount"),
+  cashClosureStatus: document.getElementById("cash-closure-status"),
   closeShiftBtn: document.getElementById("close-shift-btn"),
   refreshCashBtn: document.getElementById("refresh-cash-btn"),
   cashFeedback: document.getElementById("cash-feedback"),
-  cashSalesTableBody: document.getElementById("cash-sales-table-body")
+  cashSalesTableBody: document.getElementById("cash-sales-table-body"),
+  cashClosuresTableBody: document.getElementById("cash-closures-table-body")
 };
