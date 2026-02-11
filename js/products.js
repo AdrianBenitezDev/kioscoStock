@@ -1,5 +1,5 @@
 import { getCurrentSession } from "./auth.js";
-import { getProductByKioscoAndBarcode, getProductsByKiosco, putProduct } from "./db.js";
+import { getProductById, getProductByKioscoAndBarcode, getProductsByKiosco, putProduct } from "./db.js";
 import { PRODUCT_CATEGORIES } from "./config.js";
 
 export async function createProduct(formData) {
@@ -63,7 +63,13 @@ export async function listProductsForCurrentKiosco() {
   if (!session) return [];
 
   const products = await getProductsByKiosco(session.kioscoId);
-  return products.sort((a, b) => a.name.localeCompare(b.name));
+  return products.sort((a, b) => {
+    const categoryCmp = String(a.category || "").localeCompare(String(b.category || ""));
+    if (categoryCmp !== 0) return categoryCmp;
+    const stockCmp = Number(a.stock || 0) - Number(b.stock || 0);
+    if (stockCmp !== 0) return stockCmp;
+    return String(a.name || "").localeCompare(String(b.name || ""));
+  });
 }
 
 export async function findProductByBarcodeForCurrentKiosco(barcodeInput) {
@@ -74,4 +80,31 @@ export async function findProductByBarcodeForCurrentKiosco(barcodeInput) {
   if (!barcode) return null;
 
   return getProductByKioscoAndBarcode(session.kioscoId, barcode);
+}
+
+export async function updateProductStock(productId, newStockInput) {
+  const session = getCurrentSession();
+  if (!session) {
+    return { ok: false, error: "Sesion expirada. Inicia sesion nuevamente.", requiresLogin: true };
+  }
+  if (session.role !== "dueno") {
+    return { ok: false, error: "Solo el dueno puede editar stock." };
+  }
+
+  const newStock = Number(newStockInput);
+  if (!Number.isFinite(newStock) || newStock < 0) {
+    return { ok: false, error: "Stock invalido." };
+  }
+
+  const product = await getProductById(productId);
+  if (!product || product.kioscoId !== session.kioscoId) {
+    return { ok: false, error: "Producto no encontrado." };
+  }
+
+  product.stock = Math.trunc(newStock);
+  product.updatedAt = new Date().toISOString();
+  product.updatedBy = session.userId;
+  await putProduct(product);
+
+  return { ok: true, message: `Stock actualizado para ${product.name}.` };
 }

@@ -5,9 +5,11 @@ import { dom } from "./dom.js";
 import {
   createProduct,
   findProductByBarcodeForCurrentKiosco,
-  listProductsForCurrentKiosco
+  listProductsForCurrentKiosco,
+  updateProductStock
 } from "./products.js";
 import { isScannerReady, isScannerRunning, startScanner, stopScanner } from "./scanner.js";
+import { createKeyboardScanner } from "./keyboard_scanner.js";
 import { chargeSale } from "./sales.js";
 import { closeTodayShift, getCashSnapshotForToday } from "./cash.js";
 import {
@@ -15,6 +17,7 @@ import {
   clearCashFeedback,
   clearScanFeedback,
   clearProductFeedback,
+  clearStockFeedback,
   renderCashClosuresTable,
   renderCashClosureStatus,
   renderCashSalesTable,
@@ -22,10 +25,12 @@ import {
   renderCashSummary,
   renderCategoryOptions,
   renderCurrentSale,
+  renderStockCategoryOptions,
   renderStockTable,
   setAddScanFeedback,
   setCashFeedback,
   setScanFeedback,
+  setStockFeedback,
   setMode,
   setProductFeedbackError,
   setProductFeedbackSuccess,
@@ -34,6 +39,10 @@ import {
 
 const currentSaleItems = [];
 let scannerMode = null;
+let currentUser = null;
+let allStockProducts = [];
+const isMobile = window.matchMedia("(pointer: coarse)").matches;
+const keyboardScanner = createKeyboardScanner(handleKeyboardBarcode);
 
 init().catch((error) => {
   console.error(error);
@@ -49,9 +58,12 @@ async function init() {
     redirectToLogin();
     return;
   }
+  currentUser = user;
 
   showAppShell(user);
   renderCategoryOptions(PRODUCT_CATEGORIES);
+  renderStockCategoryOptions(PRODUCT_CATEGORIES);
+  setupDeviceSpecificUI();
   renderCurrentSale(currentSaleItems);
   await refreshStock();
   await refreshCashPanel();
@@ -71,10 +83,14 @@ function wireEvents() {
     await refreshCashPanel();
   });
   dom.addProductForm.addEventListener("submit", handleAddProductSubmit);
+  dom.stockSearchInput.addEventListener("input", applyStockFilters);
+  dom.stockCategoryFilter.addEventListener("change", applyStockFilters);
   dom.startAddScanBtn.addEventListener("click", handleStartAddBarcodeScanner);
   dom.stopAddScanBtn.addEventListener("click", handleStopAddBarcodeScanner);
   dom.startScanBtn.addEventListener("click", handleStartScanner);
   dom.stopScanBtn.addEventListener("click", handleStopScanner);
+  dom.startStockScanBtn.addEventListener("click", handleStartStockScanner);
+  dom.stopStockScanBtn.addEventListener("click", handleStopStockScanner);
   dom.clearSaleBtn.addEventListener("click", handleClearSale);
   dom.checkoutSaleBtn.addEventListener("click", handleCheckoutSale);
   dom.closeShiftBtn.addEventListener("click", handleCloseShift);
@@ -83,6 +99,7 @@ function wireEvents() {
 
 async function handleLogout() {
   await stopAnyScanner();
+  keyboardScanner.setEnabled(false);
   clearSession();
   redirectToLogin();
 }
@@ -107,21 +124,49 @@ async function handleAddProductSubmit(event) {
 }
 
 async function refreshStock() {
-  const products = await listProductsForCurrentKiosco();
-  renderStockTable(products);
+  allStockProducts = await listProductsForCurrentKiosco();
+  applyStockFilters();
+}
+
+function applyStockFilters() {
+  const search = String(dom.stockSearchInput.value || "").trim().toLowerCase();
+  const selectedCategory = String(dom.stockCategoryFilter.value || "").trim();
+
+  const filtered = allStockProducts.filter((product) => {
+    const matchCategory = !selectedCategory || product.category === selectedCategory;
+    const haystack = `${product.barcode || ""} ${product.name || ""}`.toLowerCase();
+    const matchSearch = !search || haystack.includes(search);
+    return matchCategory && matchSearch;
+  });
+
+  renderStockTable(filtered, { canEditStock: currentUser?.role === "dueno" });
+  wireStockRowEvents();
 }
 
 async function switchMode(mode) {
-  if (mode !== "sell" && mode !== "add") {
+  if (mode !== "sell" && mode !== "add" && mode !== "stock") {
     await stopAnyScanner();
   }
   if (mode === "add" && scannerMode === "sell") {
     await stopAnyScanner();
   }
+  if (mode === "add" && scannerMode === "stock") {
+    await stopAnyScanner();
+  }
   if (mode === "sell" && scannerMode === "add") {
     await stopAnyScanner();
   }
+  if (mode === "sell" && scannerMode === "stock") {
+    await stopAnyScanner();
+  }
+  if (mode === "stock" && scannerMode === "sell") {
+    await stopAnyScanner();
+  }
+  if (mode === "stock" && scannerMode === "add") {
+    await stopAnyScanner();
+  }
   setMode(mode);
+  keyboardScanner.setEnabled(mode === "sell" || mode === "stock");
 }
 
 async function handleStartScanner() {
@@ -182,6 +227,10 @@ async function handleStopAddBarcodeScanner() {
 }
 
 async function handleDetectedCode(barcode) {
+  await processSaleBarcode(barcode);
+}
+
+async function processSaleBarcode(barcode) {
   const product = await findProductByBarcodeForCurrentKiosco(barcode);
   if (!product) {
     setScanFeedback(`Codigo ${barcode} no encontrado en stock.`);
@@ -254,16 +303,54 @@ async function stopAnyScanner({ targetMode = null, showMessage = false } = {}) {
     if (scannerMode === "sell" && showMessage) {
       setScanFeedback("Camara detenida.", "success");
     }
+    if (scannerMode === "stock") {
+      dom.stockScannerReader.classList.add("hidden");
+      if (showMessage) setStockFeedback("Camara detenida.", "success");
+    }
 
     scannerMode = null;
   } catch (error) {
     console.error(error);
     if (targetMode === "add" || scannerMode === "add") {
       setAddScanFeedback("No se pudo detener la camara.");
+    } else if (targetMode === "stock" || scannerMode === "stock") {
+      setStockFeedback("No se pudo detener la camara.");
     } else {
       setScanFeedback("No se pudo detener la camara.");
     }
   }
+}
+
+async function handleStartStockScanner() {
+  clearStockFeedback();
+  if (!isScannerReady()) {
+    setStockFeedback("No se pudo cargar la libreria de escaneo.");
+    return;
+  }
+  try {
+    await stopAnyScanner();
+    dom.stockScannerReader.classList.remove("hidden");
+    await startScanner({
+      elementId: "stock-scanner-reader",
+      onCode: handleDetectedStockCode
+    });
+    scannerMode = "stock";
+    setStockFeedback("Camara iniciada. Escanea para buscar producto.", "success");
+  } catch (error) {
+    console.error(error);
+    setStockFeedback("No se pudo iniciar la camara.");
+  }
+}
+
+async function handleStopStockScanner() {
+  await stopAnyScanner({ targetMode: "stock", showMessage: true });
+}
+
+async function handleDetectedStockCode(barcode) {
+  dom.stockSearchInput.value = barcode;
+  applyStockFilters();
+  setStockFeedback(`Busqueda por codigo: ${barcode}`, "success");
+  await stopAnyScanner({ targetMode: "stock" });
 }
 
 async function refreshCashPanel() {
@@ -303,6 +390,51 @@ async function handleCloseShift() {
     "success"
   );
   await refreshCashPanel();
+}
+
+function wireStockRowEvents() {
+  const buttons = document.querySelectorAll("[data-save-stock-id]");
+  buttons.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const productId = button.getAttribute("data-save-stock-id");
+      const input = document.querySelector(`[data-stock-input-id="${productId}"]`);
+      if (!input) return;
+
+      const result = await updateProductStock(productId, input.value);
+      if (!result.ok) {
+        setStockFeedback(result.error);
+        if (result.requiresLogin) {
+          redirectToLogin();
+        }
+        return;
+      }
+
+      setStockFeedback(result.message, "success");
+      await refreshStock();
+    });
+  });
+}
+
+function setupDeviceSpecificUI() {
+  const showCameraControls = isMobile;
+  dom.addCameraControls.classList.toggle("hidden", !showCameraControls);
+  dom.startScanBtn.classList.toggle("hidden", !showCameraControls);
+  dom.stopScanBtn.classList.toggle("hidden", !showCameraControls);
+  dom.stockCameraControls.classList.toggle("hidden", !showCameraControls);
+  dom.saleScannerReader.classList.toggle("hidden", !showCameraControls);
+  dom.saleDeviceHint.classList.toggle("hidden", showCameraControls);
+}
+
+async function handleKeyboardBarcode(barcode) {
+  if (dom.sellPanel && !dom.sellPanel.classList.contains("hidden")) {
+    await processSaleBarcode(barcode);
+    return;
+  }
+  if (dom.stockPanel && !dom.stockPanel.classList.contains("hidden")) {
+    dom.stockSearchInput.value = barcode;
+    applyStockFilters();
+    setStockFeedback(`Busqueda por codigo: ${barcode}`, "success");
+  }
 }
 
 function redirectToLogin() {

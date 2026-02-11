@@ -42,21 +42,45 @@ export function renderCategoryOptions(categories) {
   dom.productCategory.innerHTML = options.join("");
 }
 
-export function renderStockTable(products) {
+export function renderStockCategoryOptions(categories) {
+  const options = [
+    '<option value="">Todas las categorias</option>',
+    ...categories.map((category) => `<option value="${category}">${category}</option>`)
+  ];
+  dom.stockCategoryFilter.innerHTML = options.join("");
+}
+
+export function renderStockTable(products, { canEditStock = false } = {}) {
   if (products.length === 0) {
-    dom.stockTableBody.innerHTML = '<tr><td colspan="5">Sin productos cargados.</td></tr>';
+    dom.stockTableBody.innerHTML = '<tr><td colspan="6">Sin productos cargados.</td></tr>';
     return;
   }
 
   dom.stockTableBody.innerHTML = products
     .map((product) => {
+      const stock = Number(product.stock || 0);
+      const stockClass = stock <= 0 ? "stock-danger" : stock < 10 ? "stock-warning" : "";
+      const editCell = canEditStock
+        ? [
+            '<div class="stock-edit-cell">',
+            `<input class="stock-edit-input" type="number" min="0" step="1" value="${stock}" data-stock-input-id="${escapeHtml(
+              product.id
+            )}">`,
+            `<button type="button" class="stock-save-btn" data-save-stock-id="${escapeHtml(
+              product.id
+            )}">Guardar</button>`,
+            "</div>"
+          ].join("")
+        : '<span class="subtitle">Solo dueno</span>';
+
       return [
         "<tr>",
         `<td>${escapeHtml(product.barcode)}</td>`,
         `<td>${escapeHtml(product.name)}</td>`,
         `<td>${escapeHtml(product.category || "Sin categoria")}</td>`,
         `<td>$${Number(product.price || 0).toFixed(2)}</td>`,
-        `<td>${Number(product.stock || 0)}</td>`,
+        `<td><span class="${stockClass}">${stock}</span></td>`,
+        `<td>${editCell}</td>`,
         "</tr>"
       ].join("");
     })
@@ -160,6 +184,16 @@ export function setCashFeedback(message, kind = "error") {
 export function clearCashFeedback() {
   dom.cashFeedback.style.color = "var(--danger)";
   dom.cashFeedback.textContent = "";
+}
+
+export function setStockFeedback(message, kind = "error") {
+  dom.stockFeedback.style.color = kind === "success" ? "var(--accent)" : "var(--danger)";
+  dom.stockFeedback.textContent = message;
+}
+
+export function clearStockFeedback() {
+  dom.stockFeedback.style.color = "var(--danger)";
+  dom.stockFeedback.textContent = "";
 }
 
 export function renderCashClosureStatus(todayClosure) {

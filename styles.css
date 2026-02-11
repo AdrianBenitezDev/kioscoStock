@@ -129,6 +129,8 @@ button:hover {
 }
 
 .mode-btn.is-active {
+  background: var(--accent);
+  color: #ffffff;
   box-shadow: 0 0 0 3px #99f6e4;
 }
 
@@ -150,6 +152,13 @@ h4 {
 .table-wrap {
   width: 100%;
   overflow-x: auto;
+}
+
+.stock-filters {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 2fr 1fr;
+  margin-bottom: 0.6rem;
 }
 
 table {
@@ -196,6 +205,32 @@ thead th {
   margin-bottom: 0;
 }
 
+.stock-danger {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.stock-warning {
+  color: #a16207;
+  font-weight: 700;
+}
+
+.stock-edit-cell {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.stock-edit-input {
+  width: 92px;
+  padding: 0.4rem 0.5rem;
+}
+
+.stock-save-btn {
+  margin-top: 0;
+  padding: 0.45rem 0.7rem;
+}
+
 .cash-summary {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -237,7 +272,33 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .stock-filters {
+    grid-template-columns: 1fr;
+  }
+
   .cash-summary {
     grid-template-columns: 1fr;
+  }
+
+  .sell-action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0.5rem;
+    padding: 0.6rem;
+    margin: 0 auto;
+    width: min(98%, 760px);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  }
+
+  #sell-panel {
+    padding-bottom: 6.7rem;
   }
 }

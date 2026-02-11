@@ -19,7 +19,7 @@
 
       <nav class="top-actions top-actions-4">
         <button id="mode-add-product" class="mode-btn is-active" type="button">AGREGAR NUEVO PRODUCTO</button>
-        <button id="mode-sell" class="mode-btn mode-btn-secondary" type="button">ESCANEAR Y VENDER</button>
+        <button id="mode-sell" class="mode-btn mode-btn-secondary" type="button">VENTA</button>
         <button id="mode-stock" class="mode-btn mode-btn-secondary" type="button">STOCK</button>
         <button id="mode-cash" class="mode-btn mode-btn-secondary" type="button">CAJA</button>
       </nav>
@@ -29,7 +29,7 @@
         <form id="add-product-form" autocomplete="off">
           <label for="barcode">Codigo de barras</label>
           <input id="barcode" name="barcode" type="text" required>
-          <div class="scan-actions">
+          <div id="add-camera-controls" class="scan-actions">
             <button id="start-add-scan-btn" type="button">Escanear codigo</button>
             <button id="stop-add-scan-btn" type="button" class="mode-btn-secondary">Detener camara</button>
           </div>
@@ -61,8 +61,9 @@
       </section>
 
       <section id="sell-panel" class="panel hidden">
-        <h3>Escanear y vender</h3>
-        <div class="scan-actions">
+        <h3>Venta</h3>
+        <p id="sale-device-hint" class="subtitle hidden">Escanea con lector USB apuntando a esta pantalla.</p>
+        <div class="scan-actions sell-action-bar">
           <button id="start-scan-btn" type="button">Iniciar camara</button>
           <button id="stop-scan-btn" type="button" class="mode-btn-secondary">Detener camara</button>
           <button id="clear-sale-btn" type="button" class="mode-btn-secondary">Limpiar venta</button>
@@ -95,6 +96,18 @@
 
       <section id="stock-panel" class="panel hidden">
         <h3>Stock</h3>
+        <div class="stock-filters">
+          <input id="stock-search-input" type="text" placeholder="Buscar por codigo o nombre">
+          <select id="stock-category-filter">
+            <option value="">Todas las categorias</option>
+          </select>
+        </div>
+        <div id="stock-camera-controls" class="scan-actions">
+          <button id="start-stock-scan-btn" type="button">Escanear para buscar</button>
+          <button id="stop-stock-scan-btn" type="button" class="mode-btn-secondary">Detener camara</button>
+        </div>
+        <p id="stock-feedback" class="feedback" aria-live="polite"></p>
+        <div id="stock-scanner-reader" class="scanner-box hidden"></div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -104,11 +117,12 @@
                 <th>Categoria</th>
                 <th>Precio</th>
                 <th>Stock</th>
+                <th>Editar stock</th>
               </tr>
             </thead>
             <tbody id="stock-table-body">
               <tr>
-                <td colspan="5">Sin productos cargados.</td>
+                <td colspan="6">Sin productos cargados.</td>
               </tr>
             </tbody>
           </table>
