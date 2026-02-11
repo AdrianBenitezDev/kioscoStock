@@ -58,6 +58,20 @@ export async function openDatabase() {
           saleItems.createIndex("bySaleId", "saleId", { unique: false });
         }
       }
+
+      if (!database.objectStoreNames.contains(STORES.cashClosures)) {
+        const closures = database.createObjectStore(STORES.cashClosures, { keyPath: "id" });
+        closures.createIndex("byClosureKey", "closureKey", { unique: true });
+        closures.createIndex("byKioscoCreatedAt", ["kioscoId", "createdAt"], { unique: false });
+      } else {
+        const closures = request.transaction.objectStore(STORES.cashClosures);
+        if (!closures.indexNames.contains("byClosureKey")) {
+          closures.createIndex("byClosureKey", "closureKey", { unique: true });
+        }
+        if (!closures.indexNames.contains("byKioscoCreatedAt")) {
+          closures.createIndex("byKioscoCreatedAt", ["kioscoId", "createdAt"], { unique: false });
+        }
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -126,6 +140,51 @@ export async function getProductsByKiosco(kioscoId) {
     const products = tx.objectStore(STORES.products);
     const request = products.index("byKiosco").getAll(kioscoId);
     request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getSalesByKioscoAndDateRange(kioscoId, startIso, endIso) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.sales, "readonly");
+    const sales = tx.objectStore(STORES.sales);
+    const range = IDBKeyRange.bound([kioscoId, startIso], [kioscoId, endIso]);
+    const request = sales.index("byKioscoCreatedAt").getAll(range);
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getSalesByKioscoUserAndDateRange(kioscoId, userId, startIso, endIso) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.sales, "readonly");
+    const sales = tx.objectStore(STORES.sales);
+    const range = IDBKeyRange.bound([kioscoId, userId, startIso], [kioscoId, userId, endIso]);
+    const request = sales.index("byKioscoUserCreatedAt").getAll(range);
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function putCashClosure(closure) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.cashClosures, "readwrite");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(STORES.cashClosures).put(closure);
+  });
+}
+
+export async function getCashClosureByKey(closureKey) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.cashClosures, "readonly");
+    const closures = tx.objectStore(STORES.cashClosures);
+    const request = closures.index("byClosureKey").get(closureKey);
+    request.onsuccess = () => resolve(request.result || null);
     request.onerror = () => reject(request.error);
   });
 }

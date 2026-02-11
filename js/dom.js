@@ -24,5 +24,13 @@ export const dom = {
   checkoutSaleBtn: document.getElementById("checkout-sale-btn"),
   scanFeedback: document.getElementById("scan-feedback"),
   saleTableBody: document.getElementById("sale-table-body"),
-  saleTotal: document.getElementById("sale-total")
+  saleTotal: document.getElementById("sale-total"),
+  cashScopeLabel: document.getElementById("cash-scope-label"),
+  cashSalesCount: document.getElementById("cash-sales-count"),
+  cashItemsCount: document.getElementById("cash-items-count"),
+  cashTotalAmount: document.getElementById("cash-total-amount"),
+  closeShiftBtn: document.getElementById("close-shift-btn"),
+  refreshCashBtn: document.getElementById("refresh-cash-btn"),
+  cashFeedback: document.getElementById("cash-feedback"),
+  cashSalesTableBody: document.getElementById("cash-sales-table-body")
 };

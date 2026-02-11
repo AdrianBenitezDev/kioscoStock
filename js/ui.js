@@ -113,3 +113,51 @@ export function renderCurrentSale(items) {
   const total = items.reduce((acc, item) => acc + item.subtotal, 0);
   dom.saleTotal.textContent = `$${total.toFixed(2)}`;
 }
+
+export function renderCashScopeLabel(label) {
+  dom.cashScopeLabel.textContent = label;
+}
+
+export function renderCashSummary(summary) {
+  dom.cashSalesCount.textContent = String(summary.salesCount || 0);
+  dom.cashItemsCount.textContent = String(summary.itemsCount || 0);
+  dom.cashTotalAmount.textContent = `$${Number(summary.totalAmount || 0).toFixed(2)}`;
+}
+
+export function renderCashSalesTable(sales) {
+  if (!sales || sales.length === 0) {
+    dom.cashSalesTableBody.innerHTML = '<tr><td colspan="4">No hay ventas registradas hoy.</td></tr>';
+    return;
+  }
+
+  dom.cashSalesTableBody.innerHTML = sales
+    .map((sale) => {
+      const time = formatTime(sale.createdAt);
+      const username = escapeHtml(sale.username || "-");
+      return [
+        "<tr>",
+        `<td>${time}</td>`,
+        `<td>${username}</td>`,
+        `<td>${Number(sale.itemsCount || 0)}</td>`,
+        `<td>$${Number(sale.total || 0).toFixed(2)}</td>`,
+        "</tr>"
+      ].join("");
+    })
+    .join("");
+}
+
+export function setCashFeedback(message, kind = "error") {
+  dom.cashFeedback.style.color = kind === "success" ? "var(--accent)" : "var(--danger)";
+  dom.cashFeedback.textContent = message;
+}
+
+export function clearCashFeedback() {
+  dom.cashFeedback.style.color = "var(--danger)";
+  dom.cashFeedback.textContent = "";
+}
+
+function formatTime(isoDate) {
+  if (!isoDate) return "--:--";
+  const date = new Date(isoDate);
+  return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+}

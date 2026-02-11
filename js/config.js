@@ -1,11 +1,12 @@
 export const DB_NAME = "kioscoStockDB";
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 
 export const STORES = {
   users: "users",
   products: "products",
   sales: "sales",
-  saleItems: "saleItems"
+  saleItems: "saleItems",
+  cashClosures: "cashClosures"
 };
 
 export const SESSION_KEY = "kioscoStockSession";

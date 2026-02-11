@@ -9,14 +9,20 @@ import {
 } from "./products.js";
 import { isScannerReady, isScannerRunning, startScanner, stopScanner } from "./scanner.js";
 import { chargeSale } from "./sales.js";
+import { closeTodayShift, getCashSnapshotForToday } from "./cash.js";
 import {
   clearAddScanFeedback,
+  clearCashFeedback,
   clearScanFeedback,
   clearProductFeedback,
+  renderCashSalesTable,
+  renderCashScopeLabel,
+  renderCashSummary,
   renderCategoryOptions,
   renderCurrentSale,
   renderStockTable,
   setAddScanFeedback,
+  setCashFeedback,
   setScanFeedback,
   setMode,
   setProductFeedbackError,
@@ -46,6 +52,7 @@ async function init() {
   renderCategoryOptions(PRODUCT_CATEGORIES);
   renderCurrentSale(currentSaleItems);
   await refreshStock();
+  await refreshCashPanel();
   wireEvents();
 }
 
@@ -57,7 +64,10 @@ function wireEvents() {
     await switchMode("stock");
     await refreshStock();
   });
-  dom.cashModeBtn.addEventListener("click", () => switchMode("cash"));
+  dom.cashModeBtn.addEventListener("click", async () => {
+    await switchMode("cash");
+    await refreshCashPanel();
+  });
   dom.addProductForm.addEventListener("submit", handleAddProductSubmit);
   dom.startAddScanBtn.addEventListener("click", handleStartAddBarcodeScanner);
   dom.stopAddScanBtn.addEventListener("click", handleStopAddBarcodeScanner);
@@ -65,6 +75,8 @@ function wireEvents() {
   dom.stopScanBtn.addEventListener("click", handleStopScanner);
   dom.clearSaleBtn.addEventListener("click", handleClearSale);
   dom.checkoutSaleBtn.addEventListener("click", handleCheckoutSale);
+  dom.closeShiftBtn.addEventListener("click", handleCloseShift);
+  dom.refreshCashBtn.addEventListener("click", refreshCashPanel);
 }
 
 async function handleLogout() {
@@ -216,6 +228,7 @@ async function handleCheckoutSale() {
     "success"
   );
   await refreshStock();
+  await refreshCashPanel();
 }
 
 async function handleDetectedAddBarcode(barcode) {
@@ -249,6 +262,41 @@ async function stopAnyScanner({ targetMode = null, showMessage = false } = {}) {
       setScanFeedback("No se pudo detener la camara.");
     }
   }
+}
+
+async function refreshCashPanel() {
+  clearCashFeedback();
+  const snapshot = await getCashSnapshotForToday();
+  if (!snapshot.ok) {
+    if (snapshot.requiresLogin) {
+      redirectToLogin();
+      return;
+    }
+    setCashFeedback(snapshot.error);
+    return;
+  }
+
+  renderCashScopeLabel(snapshot.scopeLabel);
+  renderCashSummary(snapshot.summary);
+  renderCashSalesTable(snapshot.sales);
+}
+
+async function handleCloseShift() {
+  const result = await closeTodayShift();
+  if (!result.ok) {
+    if (result.requiresLogin) {
+      redirectToLogin();
+      return;
+    }
+    setCashFeedback(result.error);
+    return;
+  }
+
+  setCashFeedback(
+    `Turno cerrado. Debes entregar $${result.summary.totalAmount.toFixed(2)}.`,
+    "success"
+  );
+  await refreshCashPanel();
 }
 
 function redirectToLogin() {

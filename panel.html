@@ -112,7 +112,46 @@
 
       <section id="cash-panel" class="panel hidden">
         <h3>Caja</h3>
-        <p>En este bloque vamos a mostrar total del turno, cierres y monto a entregar.</p>
+        <p id="cash-scope-label" class="subtitle"></p>
+        <div class="cash-summary">
+          <article class="cash-card">
+            <h4>Ventas del dia</h4>
+            <p id="cash-sales-count" class="cash-value">0</p>
+          </article>
+          <article class="cash-card">
+            <h4>Productos vendidos</h4>
+            <p id="cash-items-count" class="cash-value">0</p>
+          </article>
+          <article class="cash-card">
+            <h4>Total a entregar</h4>
+            <p id="cash-total-amount" class="cash-value">$0.00</p>
+          </article>
+        </div>
+
+        <div class="scan-actions">
+          <button id="close-shift-btn" type="button">TERMINAR TURNO</button>
+          <button id="refresh-cash-btn" type="button" class="mode-btn-secondary">Actualizar caja</button>
+        </div>
+        <p id="cash-feedback" class="feedback" aria-live="polite"></p>
+
+        <h4>Ventas del dia</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Usuario</th>
+                <th>Items</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="cash-sales-table-body">
+              <tr>
+                <td colspan="4">No hay ventas registradas hoy.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </section>
   </main>
