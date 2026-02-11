@@ -79,6 +79,16 @@ export function clearScanFeedback() {
   dom.scanFeedback.textContent = "";
 }
 
+export function setAddScanFeedback(message, kind = "error") {
+  dom.addScanFeedback.style.color = kind === "success" ? "var(--accent)" : "var(--danger)";
+  dom.addScanFeedback.textContent = message;
+}
+
+export function clearAddScanFeedback() {
+  dom.addScanFeedback.style.color = "var(--danger)";
+  dom.addScanFeedback.textContent = "";
+}
+
 export function renderCurrentSale(items) {
   if (items.length === 0) {
     dom.saleTableBody.innerHTML = '<tr><td colspan="5">No hay productos escaneados.</td></tr>';

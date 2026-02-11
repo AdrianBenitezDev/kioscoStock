@@ -1,5 +1,6 @@
 let html5QrCode = null;
 let scanning = false;
+let activeElementId = null;
 let lastCode = "";
 let lastCodeAt = 0;
 
@@ -12,7 +13,14 @@ export async function startScanner({ elementId, onCode }) {
     throw new Error("No se pudo cargar la libreria de escaneo.");
   }
 
-  if (scanning) return;
+  if (scanning && activeElementId !== elementId) {
+    await stopScanner();
+  }
+
+  if (scanning && activeElementId === elementId) {
+    return;
+  }
+
   if (!html5QrCode) {
     html5QrCode = new window.Html5Qrcode(elementId);
   }
@@ -52,6 +60,7 @@ export async function startScanner({ elementId, onCode }) {
   );
 
   scanning = true;
+  activeElementId = elementId;
 }
 
 export async function stopScanner() {
@@ -60,6 +69,7 @@ export async function stopScanner() {
   await html5QrCode.clear();
   html5QrCode = null;
   scanning = false;
+  activeElementId = null;
 }
 
 export function isScannerRunning() {

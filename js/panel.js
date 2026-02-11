@@ -9,11 +9,13 @@ import {
 } from "./products.js";
 import { isScannerReady, isScannerRunning, startScanner, stopScanner } from "./scanner.js";
 import {
+  clearAddScanFeedback,
   clearScanFeedback,
   clearProductFeedback,
   renderCategoryOptions,
   renderCurrentSale,
   renderStockTable,
+  setAddScanFeedback,
   setScanFeedback,
   setMode,
   setProductFeedbackError,
@@ -22,6 +24,7 @@ import {
 } from "./ui.js";
 
 const currentSaleItems = [];
+let scannerMode = null;
 
 init().catch((error) => {
   console.error(error);
@@ -55,13 +58,15 @@ function wireEvents() {
   });
   dom.cashModeBtn.addEventListener("click", () => switchMode("cash"));
   dom.addProductForm.addEventListener("submit", handleAddProductSubmit);
+  dom.startAddScanBtn.addEventListener("click", handleStartAddBarcodeScanner);
+  dom.stopAddScanBtn.addEventListener("click", handleStopAddBarcodeScanner);
   dom.startScanBtn.addEventListener("click", handleStartScanner);
   dom.stopScanBtn.addEventListener("click", handleStopScanner);
   dom.clearSaleBtn.addEventListener("click", handleClearSale);
 }
 
 async function handleLogout() {
-  await handleStopScanner();
+  await stopAnyScanner();
   clearSession();
   redirectToLogin();
 }
@@ -91,8 +96,14 @@ async function refreshStock() {
 }
 
 async function switchMode(mode) {
-  if (mode !== "sell") {
-    await handleStopScanner();
+  if (mode !== "sell" && mode !== "add") {
+    await stopAnyScanner();
+  }
+  if (mode === "add" && scannerMode === "sell") {
+    await stopAnyScanner();
+  }
+  if (mode === "sell" && scannerMode === "add") {
+    await stopAnyScanner();
   }
   setMode(mode);
 }
@@ -105,10 +116,12 @@ async function handleStartScanner() {
   }
 
   try {
+    await stopAnyScanner();
     await startScanner({
       elementId: "scanner-reader",
       onCode: handleDetectedCode
     });
+    scannerMode = "sell";
     setScanFeedback("Camara iniciada. Escanea un codigo.", "success");
   } catch (error) {
     console.error(error);
@@ -117,21 +130,39 @@ async function handleStartScanner() {
 }
 
 async function handleStopScanner() {
-  if (!isScannerRunning()) return;
-
-  try {
-    await stopScanner();
-    setScanFeedback("Camara detenida.", "success");
-  } catch (error) {
-    console.error(error);
-    setScanFeedback("No se pudo detener la camara.");
-  }
+  await stopAnyScanner({ targetMode: "sell", showMessage: true });
 }
 
 function handleClearSale() {
   currentSaleItems.length = 0;
   renderCurrentSale(currentSaleItems);
   setScanFeedback("Venta actual limpiada.", "success");
+}
+
+async function handleStartAddBarcodeScanner() {
+  clearAddScanFeedback();
+  if (!isScannerReady()) {
+    setAddScanFeedback("No se pudo cargar la libreria de escaneo.");
+    return;
+  }
+
+  try {
+    await stopAnyScanner();
+    dom.addScannerReader.classList.remove("hidden");
+    await startScanner({
+      elementId: "add-scanner-reader",
+      onCode: handleDetectedAddBarcode
+    });
+    scannerMode = "add";
+    setAddScanFeedback("Camara iniciada. Escanea el codigo del producto.", "success");
+  } catch (error) {
+    console.error(error);
+    setAddScanFeedback("No se pudo iniciar la camara.");
+  }
+}
+
+async function handleStopAddBarcodeScanner() {
+  await stopAnyScanner({ targetMode: "add", showMessage: true });
 }
 
 async function handleDetectedCode(barcode) {
@@ -158,6 +189,39 @@ async function handleDetectedCode(barcode) {
 
   renderCurrentSale(currentSaleItems);
   setScanFeedback(`Escaneado: ${product.name}`, "success");
+}
+
+async function handleDetectedAddBarcode(barcode) {
+  dom.barcodeInput.value = barcode;
+  setAddScanFeedback(`Codigo capturado: ${barcode}`, "success");
+  await stopAnyScanner({ targetMode: "add" });
+}
+
+async function stopAnyScanner({ targetMode = null, showMessage = false } = {}) {
+  if (!isScannerRunning()) return;
+  if (targetMode && scannerMode !== targetMode) return;
+
+  try {
+    await stopScanner();
+
+    if (scannerMode === "add") {
+      dom.addScannerReader.classList.add("hidden");
+      if (showMessage) setAddScanFeedback("Camara detenida.", "success");
+    }
+
+    if (scannerMode === "sell" && showMessage) {
+      setScanFeedback("Camara detenida.", "success");
+    }
+
+    scannerMode = null;
+  } catch (error) {
+    console.error(error);
+    if (targetMode === "add" || scannerMode === "add") {
+      setAddScanFeedback("No se pudo detener la camara.");
+    } else {
+      setScanFeedback("No se pudo detener la camara.");
+    }
+  }
 }
 
 function redirectToLogin() {

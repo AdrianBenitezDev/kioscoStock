@@ -29,6 +29,12 @@
         <form id="add-product-form" autocomplete="off">
           <label for="barcode">Codigo de barras</label>
           <input id="barcode" name="barcode" type="text" required>
+          <div class="scan-actions">
+            <button id="start-add-scan-btn" type="button">Escanear codigo</button>
+            <button id="stop-add-scan-btn" type="button" class="mode-btn-secondary">Detener camara</button>
+          </div>
+          <p id="add-scan-feedback" class="feedback" aria-live="polite"></p>
+          <div id="add-scanner-reader" class="scanner-box hidden"></div>
 
           <label for="product-name">Nombre</label>
           <input id="product-name" name="name" type="text" required>
