@@ -121,9 +121,7 @@
           <table>
             <thead>
               <tr>
-                <th>Codigo</th>
                 <th>Nombre</th>
-                <th>Categoria</th>
                 <th>Precio</th>
                 <th>Stock</th>
                 <th>Editar stock</th>
@@ -131,11 +129,19 @@
             </thead>
             <tbody id="stock-table-body">
               <tr>
-                <td colspan="6">Sin productos cargados.</td>
+                <td colspan="4">Sin productos cargados.</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <aside id="stock-detail-panel" class="stock-detail-panel hidden">
+          <h4>Detalle de producto</h4>
+          <p><strong>Nombre:</strong> <span id="stock-detail-name">-</span></p>
+          <p><strong>Codigo:</strong> <span id="stock-detail-barcode">-</span></p>
+          <p><strong>Categoria:</strong> <span id="stock-detail-category">-</span></p>
+          <p><strong>Precio:</strong> <span id="stock-detail-price">-</span></p>
+          <p><strong>Stock:</strong> <span id="stock-detail-stock">-</span></p>
+        </aside>
       </section>
 
       <section id="cash-panel" class="panel hidden">

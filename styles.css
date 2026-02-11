@@ -217,6 +217,14 @@ td {
   font-size: 0.95rem;
 }
 
+#stock-table-body tr[data-stock-row-id] {
+  cursor: pointer;
+}
+
+#stock-table-body tr[data-stock-row-id]:hover {
+  background: #f8fafc;
+}
+
 thead th {
   font-size: 0.85rem;
   color: #475569;
@@ -272,6 +280,18 @@ thead th {
 .stock-save-btn {
   margin-top: 0;
   padding: 0.45rem 0.7rem;
+}
+
+.stock-detail-panel {
+  margin-top: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 0.9rem;
+}
+
+.stock-detail-panel p {
+  margin: 0.35rem 0;
 }
 
 .cash-summary {

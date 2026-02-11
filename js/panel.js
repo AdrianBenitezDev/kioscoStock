@@ -25,6 +25,7 @@ import {
   renderCashSummary,
   renderCategoryOptions,
   renderCurrentSale,
+  renderStockDetail,
   renderStockCategoryOptions,
   renderStockTable,
   setAddScanFeedback,
@@ -41,6 +42,7 @@ const currentSaleItems = [];
 let scannerMode = null;
 let currentUser = null;
 let allStockProducts = [];
+let selectedStockProductId = null;
 const isMobile = window.matchMedia("(pointer: coarse)").matches;
 const keyboardScanner = createKeyboardScanner(handleKeyboardBarcode);
 
@@ -141,6 +143,14 @@ function applyStockFilters() {
 
   renderStockTable(filtered, { canEditStock: currentUser?.role === "dueno" });
   wireStockRowEvents();
+
+  const selectedInFiltered = filtered.find((p) => p.id === selectedStockProductId);
+  if (selectedInFiltered) {
+    renderStockDetail(selectedInFiltered);
+  } else {
+    selectedStockProductId = null;
+    renderStockDetail(null);
+  }
 }
 
 async function switchMode(mode) {
@@ -393,9 +403,20 @@ async function handleCloseShift() {
 }
 
 function wireStockRowEvents() {
+  const rows = document.querySelectorAll("[data-stock-row-id]");
+  rows.forEach((row) => {
+    row.addEventListener("click", () => {
+      const productId = row.getAttribute("data-stock-row-id");
+      selectedStockProductId = productId;
+      const product = allStockProducts.find((item) => item.id === productId) || null;
+      renderStockDetail(product);
+    });
+  });
+
   const buttons = document.querySelectorAll("[data-save-stock-id]");
   buttons.forEach((button) => {
-    button.addEventListener("click", async () => {
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
       const productId = button.getAttribute("data-save-stock-id");
       const input = document.querySelector(`[data-stock-input-id="${productId}"]`);
       if (!input) return;
@@ -411,6 +432,13 @@ function wireStockRowEvents() {
 
       setStockFeedback(result.message, "success");
       await refreshStock();
+    });
+  });
+
+  const inputs = document.querySelectorAll("[data-stock-input-id]");
+  inputs.forEach((input) => {
+    input.addEventListener("click", (event) => {
+      event.stopPropagation();
     });
   });
 }

@@ -52,7 +52,7 @@ export function renderStockCategoryOptions(categories) {
 
 export function renderStockTable(products, { canEditStock = false } = {}) {
   if (products.length === 0) {
-    dom.stockTableBody.innerHTML = '<tr><td colspan="6">Sin productos cargados.</td></tr>';
+    dom.stockTableBody.innerHTML = '<tr><td colspan="4">Sin productos cargados.</td></tr>';
     return;
   }
 
@@ -74,10 +74,8 @@ export function renderStockTable(products, { canEditStock = false } = {}) {
         : '<span class="subtitle">Solo dueno</span>';
 
       return [
-        "<tr>",
-        `<td>${escapeHtml(product.barcode)}</td>`,
+        `<tr data-stock-row-id="${escapeHtml(product.id)}">`,
         `<td>${escapeHtml(product.name)}</td>`,
-        `<td>${escapeHtml(product.category || "Sin categoria")}</td>`,
         `<td>$${Number(product.price || 0).toFixed(2)}</td>`,
         `<td><span class="${stockClass}">${stock}</span></td>`,
         `<td>${editCell}</td>`,
@@ -194,6 +192,20 @@ export function setStockFeedback(message, kind = "error") {
 export function clearStockFeedback() {
   dom.stockFeedback.style.color = "var(--danger)";
   dom.stockFeedback.textContent = "";
+}
+
+export function renderStockDetail(product) {
+  if (!product) {
+    dom.stockDetailPanel.classList.add("hidden");
+    return;
+  }
+
+  dom.stockDetailName.textContent = String(product.name || "-");
+  dom.stockDetailBarcode.textContent = String(product.barcode || "-");
+  dom.stockDetailCategory.textContent = String(product.category || "Sin categoria");
+  dom.stockDetailPrice.textContent = `$${Number(product.price || 0).toFixed(2)}`;
+  dom.stockDetailStock.textContent = String(Number(product.stock || 0));
+  dom.stockDetailPanel.classList.remove("hidden");
 }
 
 export function renderCashClosureStatus(todayClosure) {
