@@ -9,8 +9,11 @@
 <body>
   <header class="top-banner">
     <div class="top-banner-inner">
-      <strong class="top-banner-title">kioscoStock.com.ar</strong>
-      <span class="top-banner-subtitle">Panel operativo en linea</span>
+      <div>
+        <strong class="top-banner-title">kioscoStock.com.ar</strong>
+        <span class="top-banner-subtitle">Panel operativo en linea</span>
+      </div>
+      <button id="logout-btn" class="top-banner-logout" type="button">Cerrar sesion</button>
     </div>
   </header>
 
@@ -20,12 +23,6 @@
         <div>
           <h2>Panel principal</h2>
           <p id="session-info" class="subtitle"></p>
-        </div>
-        <div class="header-actions">
-          <div class="brand-chip">
-            <h3>kioscoStock.com.ar</h3>
-          </div>
-          <button id="logout-btn" type="button">Cerrar sesion</button>
         </div>
       </header>
 
@@ -217,6 +214,13 @@
       </section>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>Developer: Adrian Benitez Dev</span>
+      <a href="mailto:developer@kioscostock.com.ar">developer@kioscostock.com.ar</a>
+    </div>
+  </footer>
 
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script type="module" src="js/panel.js"></script>

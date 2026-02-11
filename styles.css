@@ -15,8 +15,6 @@ body {
   margin: 0;
   padding-top: 66px;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(145deg, #e6eef8, var(--bg));
   color: var(--text);
@@ -50,13 +48,22 @@ body {
 }
 
 .top-banner-subtitle {
+  display: block;
   font-size: 0.86rem;
   opacity: 0.92;
+}
+
+.top-banner-logout {
+  margin-top: 0;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  padding: 0.55rem 0.8rem;
 }
 
 .container {
   width: min(96%, 1160px);
   padding: 2rem;
+  margin: 1rem auto;
   border-radius: 14px;
   background: var(--card);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
@@ -175,25 +182,6 @@ button:hover {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 1rem;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.brand-chip {
-  border: 1px solid #99f6e4;
-  border-radius: 999px;
-  background: #ecfeff;
-  padding: 0.35rem 0.8rem;
-}
-
-.brand-chip h3 {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #0f766e;
 }
 
 h3 {
@@ -317,6 +305,35 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.site-footer {
+  width: 100%;
+  margin-top: 1rem;
+  border-top: 1px solid #dbe3ef;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.site-footer-inner {
+  width: min(96%, 1160px);
+  margin: 0 auto;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.site-footer a {
+  color: #0f766e;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   body {
     padding-top: 62px;
@@ -348,8 +365,9 @@ button:disabled {
     align-items: stretch;
   }
 
-  .header-actions {
-    justify-content: space-between;
+  .top-banner-logout {
+    padding: 0.5rem 0.62rem;
+    font-size: 0.76rem;
   }
 
   .top-actions,
@@ -379,21 +397,35 @@ button:disabled {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0.5rem;
-    padding: 0.6rem;
+    bottom: 0;
+    padding: 0.55rem;
     margin: 0 auto;
-    width: min(98%, 760px);
+    width: 100%;
     background: rgba(255, 255, 255, 0.96);
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-bottom: 0;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 14px 14px 0 0;
     z-index: 50;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.45rem;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
   }
 
   #sell-panel {
-    padding-bottom: 6.7rem;
+    padding-bottom: 7.2rem;
+  }
+
+  .site-footer-inner {
+    width: 100%;
+    padding: 0 0.8rem;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 64px;
+    font-size: 0.8rem;
   }
 }
