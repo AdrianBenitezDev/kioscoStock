@@ -4,9 +4,10 @@ import { hashText } from "./utils.js";
 
 export async function seedInitialUsers() {
   const users = await getAllUsers();
-  if (users.length > 0) return;
+  const usersById = new Map(users.map((user) => [user.id, user]));
 
   for (const user of SEED_USERS) {
+    const existing = usersById.get(user.id);
     const passwordHash = await hashText(user.password);
     await putUser({
       id: user.id,
@@ -15,7 +16,8 @@ export async function seedInitialUsers() {
       passwordHash,
       role: user.role,
       displayName: user.displayName,
-      createdAt: new Date().toISOString()
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
   }
 }
