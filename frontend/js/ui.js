@@ -2,6 +2,7 @@ import { dom } from "./dom.js";
 
 export function showAppShell(user) {
   dom.sessionInfo.textContent = `${user.displayName} (${user.role}) - ${user.tenantId}`;
+  dom.sessionEmail.textContent = user.email ? `Email: ${user.email}` : "----@gmail.com";
   const isOwner = user.role === "empleador";
   dom.providerCostGroup.classList.toggle("hidden", !isOwner);
   dom.providerCostInput.required = isOwner;
