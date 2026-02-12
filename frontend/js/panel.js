@@ -284,6 +284,7 @@ async function handleStartAddBarcodeScanner() {
       elementId: "add-scanner-reader",
       onCode: handleDetectedAddBarcode
     });
+    dom.addScannerReader.style.position = "absolute";
     scannerMode = "add";
     setAddScanFeedback("Camara iniciada. Escanea el codigo del producto.", "success");
   } catch (error) {
