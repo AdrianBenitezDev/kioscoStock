@@ -1,0 +1,8 @@
+1.❌ como accede el empleado??
+2.⚠️ el empleador crear las cuentas empleado
+3. los futuros emp acceden al index y pueden contratar el servicio
+3. brindan la web a sus empl y acceden en el btn acceso a empl
+
+==> realizamos un html especial para el acceso a los empl???
+
+4. 
