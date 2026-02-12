@@ -1,4 +1,4 @@
-import { playBeep } from "./scanner";
+import { playBeep } from "./scanner.js";
 
 export function createKeyboardScanner(onScan) {
   let enabled = false;
