@@ -6,6 +6,7 @@ import {
   getSalesByKioscoUserAndDateRange,
   putCashClosure
 } from "./db.js";
+import { syncCashClosureToFirestore } from "./firebase_sync.js";
 
 export async function getCashSnapshotForToday() {
   const session = getCurrentSession();
@@ -57,7 +58,7 @@ export async function closeTodayShift() {
     };
   }
 
-  await putCashClosure({
+  const closure = {
     id: crypto.randomUUID(),
     closureKey,
     kioscoId: session.kioscoId,
@@ -71,7 +72,10 @@ export async function closeTodayShift() {
     salesCount: summary.salesCount,
     itemsCount: summary.itemsCount,
     createdAt: new Date().toISOString()
-  });
+  };
+
+  await putCashClosure(closure);
+  await syncCashClosureToFirestore(closure);
 
   return {
     ok: true,

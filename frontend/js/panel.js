@@ -1,6 +1,7 @@
 import { PRODUCT_CATEGORIES } from "./config.js";
 import { clearSession, getUserFromSession, seedInitialUsers } from "./auth.js";
 import { openDatabase } from "./db.js";
+import { ensureFirebaseAuth } from "../config.js";
 import { dom } from "./dom.js";
 import {
   createProduct,
@@ -54,6 +55,7 @@ init().catch((error) => {
 });
 
 async function init() {
+  await ensureFirebaseAuth();
   await openDatabase();
   await seedInitialUsers();
 

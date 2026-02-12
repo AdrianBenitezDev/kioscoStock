@@ -1,5 +1,6 @@
 import { openDatabase } from "./db.js";
 import { authenticate, getUserFromSession, seedInitialUsers } from "./auth.js";
+import { ensureFirebaseAuth } from "../config.js";
 
 const loginForm = document.getElementById("login-form");
 const loginFeedback = document.getElementById("login-feedback");
@@ -10,6 +11,7 @@ init().catch((error) => {
 });
 
 async function init() {
+  await ensureFirebaseAuth();
   await openDatabase();
   await seedInitialUsers();
 

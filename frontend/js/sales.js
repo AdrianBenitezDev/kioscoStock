@@ -1,6 +1,7 @@
 import { getCurrentSession } from "./auth.js";
 import { STORES } from "./config.js";
 import { openDatabase } from "./db.js";
+import { syncSaleToFirestore } from "./firebase_sync.js";
 
 export async function chargeSale(cartItems) {
   const session = getCurrentSession();
@@ -18,6 +19,8 @@ export async function chargeSale(cartItems) {
   const itemsCount = cartItems.reduce((acc, item) => acc + Number(item.quantity || 0), 0);
   const total = cartItems.reduce((acc, item) => acc + Number(item.subtotal || 0), 0);
   let totalCost = 0;
+  const saleItemsPayload = [];
+  let salePayload = null;
 
   try {
     await runWriteTransaction(db, [STORES.products, STORES.sales, STORES.saleItems], async (tx) => {
@@ -47,7 +50,7 @@ export async function chargeSale(cartItems) {
         const subtotalCost = Number((unitProviderCost * requestedQty).toFixed(2));
         totalCost += subtotalCost;
 
-        saleItemsStore.put({
+        const saleItem = {
           id: crypto.randomUUID(),
           saleId,
           kioscoId: session.kioscoId,
@@ -61,14 +64,16 @@ export async function chargeSale(cartItems) {
           unitProviderCost,
           subtotalCost,
           createdAt: now
-        });
+        };
+        saleItemsStore.put(saleItem);
+        saleItemsPayload.push(saleItem);
       }
 
       const saleTotal = Number(total.toFixed(2));
       const saleCost = Number(totalCost.toFixed(2));
       const saleProfit = Number((saleTotal - saleCost).toFixed(2));
 
-      salesStore.put({
+      salePayload = {
         id: saleId,
         kioscoId: session.kioscoId,
         userId: session.userId,
@@ -79,10 +84,15 @@ export async function chargeSale(cartItems) {
         profit: saleProfit,
         itemsCount,
         createdAt: now
-      });
+      };
+      salesStore.put(salePayload);
     });
   } catch (error) {
     return { ok: false, error: error.message || "No se pudo cobrar la venta." };
+  }
+
+  if (salePayload) {
+    await syncSaleToFirestore(salePayload, saleItemsPayload);
   }
 
   return {

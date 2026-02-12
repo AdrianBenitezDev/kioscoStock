@@ -1,81 +1,86 @@
-kioscos (colección)
-   └── kioscoId
-        ├── nombre
-        ├── ownerUid
-        ├── plan
-        ├── activo
-        ├── createdAt
+Estructura Firestore (hibrido local + sync Firebase)
 
+1) kioscos/{kioscoId}
+- nombre: string
+- ownerUid: string
+- plan: string
+- activo: boolean
+- createdAt: timestamp
 
-usuarios (colección)
-   └── uid
-        ├── kioscoId
-        ├── rol: "empleador" | "empleado"
-        ├── email
-        ├── activo
+2) usuarios/{uid}
+- kioscoId: string
+- rol: "empleador" | "empleado"
+- email: string
+- username: string
+- displayName: string
+- activo: boolean
+- updatedAt: timestamp
 
+3) productos/{productoId}
+- kioscoId: string
+- nombre: string
+- barcode: string
+- categoria: string
+- precio: number
+- costoProveedor: number
+- stock: number
+- createdBy: string
+- createdAt: string(ISO)
+- updatedBy: string
+- updatedAt: string(ISO)
+- syncedAt: timestamp
 
-productos
-   └── productoId
-        ├── kioscoId
-        ├── nombre
-        ├── precio
-        ├── stock
+4) ventas/{ventaId}
+- kioscoId: string
+- userId: string
+- username: string
+- role: "empleador" | "empleado"
+- total: number
+- totalCost: number
+- profit: number
+- itemsCount: number
+- createdAt: string(ISO)
+- syncedAt: timestamp
 
+5) venta_items/{itemId}
+- saleId: string
+- kioscoId: string
+- userId: string
+- productId: string
+- barcode: string
+- nombre: string
+- quantity: number
+- unitPrice: number
+- subtotal: number
+- unitProviderCost: number
+- subtotalCost: number
+- createdAt: string(ISO)
+- syncedAt: timestamp
 
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+6) cierres/{cierreId}
+- closureKey: string
+- kioscoId: string
+- userId: string
+- role: "empleador" | "empleado"
+- username: string
+- dateKey: string (YYYY-MM-DD)
+- totalAmount: number
+- totalCost: number
+- profitAmount: number
+- salesCount: number
+- itemsCount: number
+- createdAt: string(ISO)
+- syncedAt: timestamp
 
-    function userData() {
-      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
-    }
+7) sesiones/{sessionDocId}
+- kioscoId: string
+- userId: string
+- username: string
+- role: "empleador" | "empleado"
+- loggedAt: string(ISO)
+- createdAt: timestamp
 
-    match /productos/{doc} {
-      allow read, write: if request.auth != null
-        && userData().kioscoId == resource.data.kioscoId;
-    }
-
-    match /kioscos/{doc} {
-      allow read: if request.auth != null
-        && userData().kioscoId == doc;
-
-      allow write: if request.auth != null
-        && userData().rol == "empleador"
-        && userData().kioscoId == doc;
-    }
-
-    match /usuarios/{uid} {
-      allow read: if request.auth.uid == uid;
-
-      allow write: if request.auth != null
-        && userData().rol == "empleador";
-    }
-  }
-}
-
-
-Pero para que eso funcione, necesitamos agregar tenantId al token del usuario (con custom claims).
-Eso lo hacemos con Cloud Functions después.
-
-
-
-
-
-📦 Stack final para vos
-
-Frontend:
-
-Vercel
-
-Firebase SDK modular
-
-Backend:
-
-Firebase Auth
-
-Firestore
-
-Cloud Functions v2 (solo para crear empleados)
-
-Nada más.
+Notas
+- Local-first: la app guarda primero en IndexedDB.
+- Sync Firestore best effort: si falla red/reglas, no se rompe la operacion local.
+- El alta segura de empleados se maneja por Cloud Function callable.

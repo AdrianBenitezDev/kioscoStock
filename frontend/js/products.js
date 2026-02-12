@@ -1,5 +1,6 @@
 import { getCurrentSession } from "./auth.js";
 import { getProductById, getProductByKioscoAndBarcode, getProductsByKiosco, putProduct } from "./db.js";
+import { syncProductToFirestore } from "./firebase_sync.js";
 import { PRODUCT_CATEGORIES } from "./config.js";
 
 export async function createProduct(formData) {
@@ -39,7 +40,7 @@ export async function createProduct(formData) {
     return { ok: false, error: "Ese codigo de barras ya existe." };
   }
 
-  await putProduct({
+  const product = {
     id: crypto.randomUUID(),
     kioscoId: session.kioscoId,
     barcode,
@@ -53,7 +54,10 @@ export async function createProduct(formData) {
     stock: Math.trunc(stock),
     createdBy: session.userId,
     createdAt: new Date().toISOString()
-  });
+  };
+
+  await putProduct(product);
+  await syncProductToFirestore(product);
 
   return { ok: true, message: "Producto guardado correctamente." };
 }
@@ -105,6 +109,7 @@ export async function updateProductStock(productId, newStockInput) {
   product.updatedAt = new Date().toISOString();
   product.updatedBy = session.userId;
   await putProduct(product);
+  await syncProductToFirestore(product);
 
   return { ok: true, message: `Stock actualizado para ${product.name}.` };
 }

@@ -1,5 +1,6 @@
 import { DEFAULT_KIOSCO_ID, SEED_USERS, SESSION_KEY } from "./config.js";
 import { getAllUsers, getUserByKioscoAndUsername, putUser } from "./db.js";
+import { syncLoginEventToFirestore, syncUserToFirestore } from "./firebase_sync.js";
 import { hashText } from "./utils.js";
 
 export async function seedInitialUsers() {
@@ -18,6 +19,13 @@ export async function seedInitialUsers() {
       displayName: user.displayName,
       createdAt: existing?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
+    });
+    await syncUserToFirestore({
+      id: user.id,
+      kioscoId: user.kioscoId,
+      username: user.username,
+      role: user.role,
+      displayName: user.displayName
     });
   }
 }
@@ -65,6 +73,7 @@ export async function authenticate(usernameInput, passwordInput) {
   };
 
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  await syncLoginEventToFirestore(session);
   return { ok: true, user };
 }
 

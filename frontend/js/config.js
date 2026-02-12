@@ -9,6 +9,16 @@ export const STORES = {
   cashClosures: "cashClosures"
 };
 
+export const FIRESTORE_COLLECTIONS = {
+  kioscos: "kioscos",
+  usuarios: "usuarios",
+  productos: "productos",
+  ventas: "ventas",
+  ventaItems: "venta_items",
+  cierres: "cierres",
+  sesiones: "sesiones"
+};
+
 export const SESSION_KEY = "kioscoStockSession";
 export const DEFAULT_KIOSCO_ID = "kiosco-demo-001";
 export const PRODUCT_CATEGORIES = [
