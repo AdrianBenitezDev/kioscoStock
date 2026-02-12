@@ -1,0 +1,81 @@
+kioscos (colección)
+   └── kioscoId
+        ├── nombre
+        ├── ownerUid
+        ├── plan
+        ├── activo
+        ├── createdAt
+
+
+usuarios (colección)
+   └── uid
+        ├── kioscoId
+        ├── rol: "empleador" | "empleado"
+        ├── email
+        ├── activo
+
+
+productos
+   └── productoId
+        ├── kioscoId
+        ├── nombre
+        ├── precio
+        ├── stock
+
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function userData() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    match /productos/{doc} {
+      allow read, write: if request.auth != null
+        && userData().kioscoId == resource.data.kioscoId;
+    }
+
+    match /kioscos/{doc} {
+      allow read: if request.auth != null
+        && userData().kioscoId == doc;
+
+      allow write: if request.auth != null
+        && userData().rol == "empleador"
+        && userData().kioscoId == doc;
+    }
+
+    match /usuarios/{uid} {
+      allow read: if request.auth.uid == uid;
+
+      allow write: if request.auth != null
+        && userData().rol == "empleador";
+    }
+  }
+}
+
+
+Pero para que eso funcione, necesitamos agregar tenantId al token del usuario (con custom claims).
+Eso lo hacemos con Cloud Functions después.
+
+
+
+
+
+📦 Stack final para vos
+
+Frontend:
+
+Vercel
+
+Firebase SDK modular
+
+Backend:
+
+Firebase Auth
+
+Firestore
+
+Cloud Functions v2 (solo para crear empleados)
+
+Nada más.
