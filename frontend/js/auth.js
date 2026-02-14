@@ -16,8 +16,7 @@ import {
   where,
   collection
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-functions.js";
-import { ensureFirebaseAuth, firebaseApp, firebaseAuth, firestoreDb } from "../config.js";
+import { ensureFirebaseAuth, firebaseAuth, firestoreDb } from "../config.js";
 import { FIRESTORE_COLLECTIONS } from "./config.js";
 import { syncLoginEventToFirestore } from "./firebase_sync.js";
 
@@ -26,9 +25,6 @@ let loginSyncedForUid = null;
 
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
-
-const functions = getFunctions(firebaseApp);
-const bootstrapGoogleUserCallable = httpsCallable(functions, "bootstrapGoogleUser");
 
 export async function registerBusinessOwner({ email, password }) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
@@ -186,13 +182,6 @@ export async function ensureCurrentUserProfile() {
   if (!authUser) {
     currentSession = null;
     return { ok: false, error: "No hay sesion iniciada.", requiresLogin: true };
-  }
-
-  // Para cuentas Google legacy, intenta bootstrap de claims sin bloquear login por email/password.
-  try {
-    await bootstrapGoogleUserCallable({});
-  } catch (_) {
-    // no-op
   }
 
   const profileRef = doc(firestoreDb, FIRESTORE_COLLECTIONS.usuarios, authUser.uid);

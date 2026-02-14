@@ -39,6 +39,7 @@ async function init() {
   }
 
   renderCountryOptions();
+  prefillEmailFromQuery();
   countrySelect?.addEventListener("change", renderProvinceOptions);
   phoneInput?.addEventListener("input", () => {
     phoneInput.value = String(phoneInput.value || "").replace(/\D/g, "");
@@ -47,6 +48,15 @@ async function init() {
   backLoginBtn?.addEventListener("click", () => {
     window.location.href = "index.html";
   });
+}
+
+function prefillEmailFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const email = String(params.get("email") || "").trim();
+  const emailInput = document.getElementById("register-email");
+  if (email && emailInput) {
+    emailInput.value = email;
+  }
 }
 
 function renderCountryOptions() {

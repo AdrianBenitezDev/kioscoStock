@@ -5,7 +5,7 @@ import {
   signInWithGoogle,
   signOutUser
 } from "./auth.js";
-import { ensureFirebaseAuth } from "../config.js";
+import { ensureFirebaseAuth, firebaseAuth } from "../config.js";
 
 const registerBtn = document.getElementById("register-business-btn");
 const employerBtn = document.getElementById("login-employer-btn");
@@ -44,6 +44,13 @@ async function handleEmployerGoogleLogin() {
     await signInWithGoogle();
     const profileResult = await ensureCurrentUserProfile();
     if (!profileResult.ok || !profileResult.user) {
+      const errorMsg = String(profileResult.error || "");
+      if (errorMsg.toLowerCase().includes("no existe perfil")) {
+        const email = encodeURIComponent(String(firebaseAuth.currentUser?.email || ""));
+        await signOutUser();
+        window.location.href = `registro.html?email=${email}`;
+        return;
+      }
       loginFeedback.textContent = profileResult.error || "No se pudo cargar tu perfil.";
       await signOutUser();
       return;
