@@ -96,6 +96,7 @@ function wireEvents() {
     await switchMode("cash");
     await refreshCashPanel();
   });
+  dom.configModeBtn?.addEventListener("click", () => switchMode("config"));
   dom.addProductForm.addEventListener("submit", handleAddProductSubmit);
   dom.syncProductsBtn?.addEventListener("click", handleManualProductsSync);
   dom.createEmployeeForm?.addEventListener("submit", handleCreateEmployeeSubmit);
@@ -687,6 +688,7 @@ function getCurrentMode() {
   if (!dom.sellPanel.classList.contains("hidden")) return "sell";
   if (!dom.stockPanel.classList.contains("hidden")) return "stock";
   if (!dom.cashPanel.classList.contains("hidden")) return "cash";
+  if (!dom.configPanel.classList.contains("hidden")) return "config";
   return "add";
 }
 

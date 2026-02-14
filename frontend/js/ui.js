@@ -3,10 +3,12 @@ import { dom } from "./dom.js";
 export function showAppShell(user) {
   dom.sessionInfo.textContent = `${user.displayName} (${user.role}) - ${user.tenantId}`;
   dom.sessionEmail.textContent = user.email ? `Email: ${user.email}` : "----@gmail.com";
-  const isOwner = user.role === "empleador";
+  const role = String(user.role || "").trim().toLowerCase();
+  const isOwner = role === "empleador" || role === "dueno";
   dom.providerCostGroup.classList.toggle("hidden", !isOwner);
   dom.providerCostInput.required = isOwner;
   dom.employeeAdminPanel.classList.toggle("hidden", !isOwner);
+  dom.configModeBtn.classList.toggle("hidden", !isOwner);
   setMode("add");
 }
 
@@ -15,10 +17,12 @@ export function setMode(mode) {
   dom.sellPanel.classList.toggle("hidden", mode !== "sell");
   dom.stockPanel.classList.toggle("hidden", mode !== "stock");
   dom.cashPanel.classList.toggle("hidden", mode !== "cash");
+  dom.configPanel.classList.toggle("hidden", mode !== "config");
   dom.addModeBtn.classList.toggle("is-active", mode === "add");
   dom.sellModeBtn.classList.toggle("is-active", mode === "sell");
   dom.stockModeBtn.classList.toggle("is-active", mode === "stock");
   dom.cashModeBtn.classList.toggle("is-active", mode === "cash");
+  dom.configModeBtn.classList.toggle("is-active", mode === "config");
 }
 
 export function setProductFeedbackError(message) {
