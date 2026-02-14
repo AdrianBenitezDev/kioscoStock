@@ -3,28 +3,74 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kiosco Stock - Registro</title>
+  <title>Kiosco Stock - Registro Empleador</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="top-banner">
     <div class="top-banner-inner">
       <strong class="top-banner-title">🧾 kioscoStock.com.ar</strong>
-      <span class="top-banner-subtitle">🏪 Registro de negocio</span>
+      <span class="top-banner-subtitle">🏪 Registro de empleador</span>
     </div>
   </header>
 
   <main class="container">
     <section>
       <h1>Registrar Negocio</h1>
-      <p class="subtitle">Crea la cuenta del empleador con email y contrasena.</p>
+      <p class="subtitle">Completa tus datos y los de tu kiosco.</p>
 
       <form id="register-form" autocomplete="off">
+        <h3>Datos personales</h3>
+
+        <label for="register-fullname">Nombre y apellido</label>
+        <input id="register-fullname" name="nombreApellido" type="text" required>
+        <small id="err-nombreApellido" class="feedback"></small>
+
         <label for="register-email">Email</label>
-        <input id="register-email" type="email" required>
+        <input id="register-email" name="email" type="email" required>
+        <small id="err-email" class="feedback"></small>
+
+        <label for="register-phone">Telefono</label>
+        <input id="register-phone" name="telefono" type="text" inputmode="numeric" required>
+        <small id="err-telefono" class="feedback"></small>
 
         <label for="register-password">Contrasena</label>
-        <input id="register-password" type="password" minlength="6" required>
+        <input id="register-password" name="password" type="password" minlength="6" required>
+        <small id="err-password" class="feedback"></small>
+
+        <h3>Datos del negocio</h3>
+
+        <label for="register-kiosk-name">Nombre del kiosco</label>
+        <input id="register-kiosk-name" name="nombreKiosco" type="text" required>
+        <small id="err-nombreKiosco" class="feedback"></small>
+
+        <label for="register-country">Pais</label>
+        <select id="register-country" name="pais" required></select>
+        <small id="err-pais" class="feedback"></small>
+
+        <label for="register-province">Provincia/Estado</label>
+        <select id="register-province" name="provinciaEstado" required></select>
+        <small id="err-provinciaEstado" class="feedback"></small>
+
+        <label for="register-district">Distrito</label>
+        <input id="register-district" name="distrito" type="text" required>
+        <small id="err-distrito" class="feedback"></small>
+
+        <label for="register-city">Localidad</label>
+        <input id="register-city" name="localidad" type="text" required>
+        <small id="err-localidad" class="feedback"></small>
+
+        <label for="register-address">Domicilio del negocio</label>
+        <input id="register-address" name="domicilio" type="text" required>
+        <small id="err-domicilio" class="feedback"></small>
+
+        <h3>Plan</h3>
+        <div class="scan-actions">
+          <label><input type="radio" name="plan" value="prueba" checked> Prueba</label>
+          <label><input type="radio" name="plan" value="standard"> Standard</label>
+          <label><input type="radio" name="plan" value="premium"> Premium</label>
+        </div>
+        <small id="err-plan" class="feedback"></small>
 
         <button id="register-submit-btn" type="submit">Crear negocio</button>
         <button id="back-login-btn" type="button" class="mode-btn-secondary">Volver al login</button>

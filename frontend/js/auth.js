@@ -1,6 +1,7 @@
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  deleteUser,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut
@@ -84,6 +85,52 @@ export async function registerBusinessOwner({ email, password }) {
       return { ok: false, error: "La contrasena es demasiado debil." };
     }
     return { ok: false, error: message || "No se pudo registrar el negocio." };
+  }
+}
+
+export async function createAuthUserForRegistration({ email, password }) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "");
+  if (!normalizedEmail || !normalizedPassword) {
+    return { ok: false, error: "Completa email y contrasena." };
+  }
+  if (normalizedPassword.length < 6) {
+    return { ok: false, error: "La contrasena debe tener al menos 6 caracteres." };
+  }
+
+  await ensureFirebaseAuth();
+  try {
+    const credential = await createUserWithEmailAndPassword(
+      firebaseAuth,
+      normalizedEmail,
+      normalizedPassword
+    );
+    const authUser = credential.user;
+    const idToken = await authUser.getIdToken();
+    return { ok: true, uid: authUser.uid, idToken };
+  } catch (error) {
+    const code = String(error?.code || "");
+    if (code.includes("email-already-in-use")) {
+      return { ok: false, error: "Este usuario ya esta registrado." };
+    }
+    if (code.includes("invalid-email")) {
+      return { ok: false, error: "Email invalido." };
+    }
+    if (code.includes("weak-password")) {
+      return { ok: false, error: "La contrasena es demasiado debil." };
+    }
+    return { ok: false, error: "No se pudo crear el usuario." };
+  }
+}
+
+export async function rollbackAuthUserIfNeeded() {
+  await ensureFirebaseAuth();
+  const authUser = firebaseAuth.currentUser;
+  if (!authUser) return;
+  try {
+    await deleteUser(authUser);
+  } catch (_) {
+    // no-op
   }
 }
 

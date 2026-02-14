@@ -1,7 +1,7 @@
 import { dom } from "./dom.js";
 
 export function showAppShell(user) {
-  dom.sessionInfo.textContent = `${user.displayName} (${user.role}) - ${user.tenantId}`;
+  dom.sessionInfo.textContent = `${user.displayName} (${user.role})`;
   dom.sessionEmail.textContent = user.email ? `Email: ${user.email}` : "----@gmail.com";
   const role = String(user.role || "").trim().toLowerCase();
   const isOwner = role === "empleador" || role === "dueno";

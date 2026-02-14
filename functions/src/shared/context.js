@@ -1,4 +1,4 @@
-const { HttpsError, onCall } = require("firebase-functions/v2/https");
+const { HttpsError, onCall, onRequest } = require("firebase-functions/v2/https");
 const { getApps, initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, Timestamp } = require("firebase-admin/firestore");
@@ -13,6 +13,7 @@ const db = getFirestore();
 module.exports = {
   HttpsError,
   onCall,
+  onRequest,
   Timestamp,
   adminAuth,
   db

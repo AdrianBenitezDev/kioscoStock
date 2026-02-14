@@ -5,6 +5,7 @@ const { deleteProductByCode } = require("./src/deleteProductByCode");
 const { createSale } = require("./src/createSale");
 const { syncSales } = require("./src/syncSales");
 const { closeCashbox } = require("./src/closeCashbox");
+const { registerEmployerProfile } = require("./src/registerEmployerProfile");
 
 exports.bootstrapGoogleUser = bootstrapGoogleUser;
 exports.crearEmpleado = crearEmpleado;
@@ -13,3 +14,4 @@ exports.deleteProductByCode = deleteProductByCode;
 exports.createSale = createSale;
 exports.syncSales = syncSales;
 exports.closeCashbox = closeCashbox;
+exports.registerEmployerProfile = registerEmployerProfile;
