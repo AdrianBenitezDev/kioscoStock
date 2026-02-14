@@ -17,8 +17,21 @@
   <main class="container">
     <section>
       <h1>🏪 Kiosco Stock</h1>
-      <p class="subtitle">Ingresar con Google (Firebase Auth)</p>
-      <button id="google-login-btn" type="button">Continuar con Google</button>
+      <p class="subtitle">Autenticacion por roles</p>
+      <div class="scan-actions">
+        <button id="register-business-btn" type="button">Registrar Negocio</button>
+        <button id="login-employer-btn" type="button" class="mode-btn-secondary">Acceder Empleador</button>
+        <button id="login-employee-btn" type="button" class="mode-btn-secondary">Acceder Empleado</button>
+      </div>
+
+      <form id="auth-form" autocomplete="off">
+        <h3 id="auth-title">Acceder Empleador</h3>
+        <label for="auth-email">Email</label>
+        <input id="auth-email" type="email" required>
+        <label for="auth-password">Contrasena</label>
+        <input id="auth-password" type="password" minlength="6" required>
+        <button id="auth-submit-btn" type="submit">Ingresar como empleador</button>
+      </form>
 
       <p id="login-feedback" class="feedback" aria-live="polite"></p>
     </section>

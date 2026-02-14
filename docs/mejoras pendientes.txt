@@ -1,0 +1,47 @@
+Posibles mejoras para KioscoStock
+
+1) Datos y sincronizacion
+- Implementar cola de sincronizacion unificada (productos, ventas, cierres) con reintentos exponenciales.
+- Guardar estado de sync por entidad (pending, syncing, synced, failed) y ultimo error.
+- Agregar reconciliacion automatica al iniciar sesion y al recuperar internet.
+- Evitar duplicados por idempotencia en functions (ej. createSale/syncSales con claves unicas).
+
+2) Seguridad y permisos
+- Completar/ajustar reglas de Firestore para colecciones multi-tenant (tenants/{tenantId}/...).
+- Verificar que todas las functions validen tenant + ownership + rol segun caso.
+- Registrar auditoria de acciones sensibles (eliminar producto, cierre de caja, ajuste de stock).
+
+3) Ventas y caja
+- Mostrar diferencias entre cierre provisional offline y cierre real backend.
+- Agregar historial de discrepancias (local vs backend) para control operativo.
+- Permitir anulacion/correccion de venta con trazabilidad (sin borrar historico).
+- Cerrar caja por rango/turno configurable (no solo diario).
+
+4) UX y rendimiento
+- Virtualizar tablas grandes de stock/ventas para mejor rendimiento.
+- Mejorar busquedas con debounce y ranking de coincidencias.
+- Agregar estados visuales de carga global por modulo (no solo botones puntuales).
+- Soporte PWA completo (instalable, offline assets, update prompts).
+
+5) Calidad y mantenimiento
+- Agregar tests unitarios (frontend y functions) para reglas de negocio criticas.
+- Agregar tests de integracion para flujos: crear producto, cobrar venta, cerrar caja.
+- Centralizar utilidades de dinero (rounding/decimal) para evitar drift.
+- Definir esquema de datos versionado y migraciones de IndexedDB.
+
+6) Observabilidad y operacion
+- Logging estructurado en functions con correlacion por tenant/user/action.
+- Alertas basicas (errores recurrentes de sync, fallos de functions, latencia alta).
+- Dashboard operativo (ventas pendientes, sync fallidos, cierres provisionales).
+
+7) Producto y negocio
+- Exportes (CSV/Excel/PDF) de stock, ventas y cierres.
+- Reportes por categoria, producto, margen real y rotacion.
+- Soporte multi-caja/multi-vendedor con metricas comparativas.
+- Configuracion de impuestos/descuentos y monedas.
+
+Prioridad sugerida (corto plazo)
+1. Reglas de seguridad Firestore + validaciones de functions.
+2. Cola de sync robusta con reintentos y estado de error.
+3. Tests de flujos criticos (ventas/caja/stock).
+4. Reconciliacion y alertas de diferencias offline vs backend.
