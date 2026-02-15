@@ -298,9 +298,14 @@ const premiumSnap = await getDoc(premiumRef);
     if (!availablePlans.length) {
       availablePlans = DEFAULT_PLANS.filter((plan) => plan.activo !== false);
     }
+    
     renderPlanCards(availablePlans);
+
     plansFeedback.textContent = "";
+
+
   } catch (error) {
+
     console.warn("No se pudieron cargar planes desde Firestore:", error?.message || error);
     
     plansFeedback.textContent = "Error al conectarse con el servidor.";
