@@ -275,7 +275,7 @@ async function loadPlans() {
   availablePlans = [];
 
   try {
-    const freeRef = doc(firestoreDb, "planes", "free");
+    const freeRef = doc(firestoreDb, "planes", "prueba");
 const standardRef = doc(firestoreDb, "planes", "standard");
 const premiumRef = doc(firestoreDb, "planes", "premium");
 
