@@ -275,7 +275,7 @@ async function loadPlans() {
   availablePlans = [];
 
   try {
-    const snap = await getDoc(doc(firestoreDb, "admin", "planes"));
+    const snap = await getDoc(doc(firestoreDb,"planes"));
     const data = snap.exists() ? snap.data() || {} : {};
     availablePlans = normalizePlans(data.planes);
     if (!availablePlans.length) {
