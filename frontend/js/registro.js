@@ -293,11 +293,22 @@ const premiumSnap = await getDoc(premiumRef);
       throw new Error("No se encontraron planes en Firestore.");
     }
 
-    const data = validSnaps[0].exists() ? validSnaps[0] .data() || {} : {};
+    
+    const data = validSnaps.map((snap) => snap.data()).reduce((acc, data) => {
+      if (data && data.planes) {
+        acc.push(...data.planes);
+      }
+      return acc;
+    }, []);
+
+    // const data = validSnaps[0].exists() ? validSnaps[0].data() || {} : {};
 
     console.log(data)
 
     availablePlans = normalizePlans(data.planes);
+
+    console.log("Planes disponibles:", availablePlans);
+
     if (!availablePlans.length) {
       availablePlans = DEFAULT_PLANS.filter((plan) => plan.activo !== false);
     }
