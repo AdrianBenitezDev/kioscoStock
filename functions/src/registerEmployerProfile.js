@@ -26,7 +26,7 @@ const registerEmployerProfile = onRequest(async (req, res) => {
     }
 
     const authUser = await adminAuth.getUser(uid);
-    const payload = normalizePayload(req.body || {}, authUser.email || "");
+    const payload = await normalizePayload(req.body || {}, authUser.email || "");
     if (!payload.ok) {
       res.status(400).json({ ok: false, error: payload.error, fieldErrors: payload.fieldErrors || {} });
       return;
@@ -113,7 +113,7 @@ function getBearerToken(req) {
   return match ? String(match[1] || "").trim() : "";
 }
 
-function normalizePayload(input, fallbackEmail) {
+async function normalizePayload(input, fallbackEmail) {
   const data = {
     nombreApellido: String(input.nombreApellido || "").trim(),
     email: String(input.email || fallbackEmail || "").trim().toLowerCase(),
@@ -155,7 +155,8 @@ function normalizePayload(input, fallbackEmail) {
   if (!data.domicilio) {
     fieldErrors.domicilio = "Domicilio obligatorio.";
   }
-  if (!["prueba", "standard", "premium"].includes(data.plan.toLowerCase())) {
+  const allowedPlans = await loadAvailablePlans();
+  if (!allowedPlans.has(data.plan.toLowerCase())) {
     fieldErrors.plan = "Plan invalido.";
   }
 
@@ -166,6 +167,32 @@ function normalizePayload(input, fallbackEmail) {
 
   data.plan = data.plan.toLowerCase();
   return { ok: true, data };
+}
+
+async function loadAvailablePlans() {
+  const fallbackPlans = new Set(["prueba", "standard", "premium"]);
+
+  try {
+    const plansSnap = await db.collection("admin").doc("planes").get();
+    if (!plansSnap.exists) return fallbackPlans;
+
+    const rawPlans = plansSnap.data()?.planes;
+    if (!Array.isArray(rawPlans) || !rawPlans.length) return fallbackPlans;
+
+    const fromFirestore = rawPlans
+      .map((plan) => ({
+        id: String(plan?.id || "").trim().toLowerCase(),
+        activo: plan?.activo !== false
+      }))
+      .filter((plan) => plan.activo && Boolean(plan.id))
+      .map((plan) => plan.id);
+
+    if (!fromFirestore.length) return fallbackPlans;
+    return new Set(fromFirestore);
+  } catch (error) {
+    console.warn("registerEmployerProfile: no se pudo leer admin/planes", error?.message || error);
+    return fallbackPlans;
+  }
 }
 
 module.exports = {

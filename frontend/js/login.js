@@ -30,11 +30,38 @@ async function init() {
     return;
   }
 
-  registerBtn?.addEventListener("click", () => {
-    window.location.href = "registro.html";
-  });
+  registerBtn?.addEventListener("click", handleRegisterBusinessStart);
   employerBtn?.addEventListener("click", handleEmployerGoogleLogin);
   employeeForm?.addEventListener("submit", handleEmployeeLogin);
+}
+
+async function handleRegisterBusinessStart() {
+  setUiDisabled(true);
+  loginFeedback.textContent = "";
+
+  try {
+    await signInWithGoogle();
+    const profileResult = await ensureCurrentUserProfile();
+    if (profileResult.ok) {
+      redirectToPanel();
+      return;
+    }
+
+    const errorMsg = String(profileResult.error || "").toLowerCase();
+    if (errorMsg.includes("no existe perfil")) {
+      const email = encodeURIComponent(String(firebaseAuth.currentUser?.email || ""));
+      window.location.href = `registro.html?email=${email}`;
+      return;
+    }
+
+    loginFeedback.textContent = profileResult.error || "No se pudo cargar tu perfil.";
+    await signOutUser();
+  } catch (error) {
+    console.error(error);
+    loginFeedback.textContent = "No se pudo iniciar sesion con Google.";
+  } finally {
+    setUiDisabled(false);
+  }
 }
 
 async function handleEmployerGoogleLogin() {
@@ -47,7 +74,6 @@ async function handleEmployerGoogleLogin() {
       const errorMsg = String(profileResult.error || "");
       if (errorMsg.toLowerCase().includes("no existe perfil")) {
         const email = encodeURIComponent(String(firebaseAuth.currentUser?.email || ""));
-        await signOutUser();
         window.location.href = `registro.html?email=${email}`;
         return;
       }

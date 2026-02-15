@@ -34,10 +34,6 @@
         <input id="register-phone" name="telefono" type="text" inputmode="numeric" required>
         <small id="err-telefono" class="feedback"></small>
 
-        <label for="register-password">Contrasena</label>
-        <input id="register-password" name="password" type="password" minlength="6" required>
-        <small id="err-password" class="feedback"></small>
-
         <h3>Datos del negocio</h3>
 
         <label for="register-kiosk-name">Nombre del kiosco</label>
@@ -65,10 +61,11 @@
         <small id="err-domicilio" class="feedback"></small>
 
         <h3>Plan</h3>
-        <div class="scan-actions">
-          <label><input type="radio" name="plan" value="prueba" checked> Prueba</label>
-          <label><input type="radio" name="plan" value="standard"> Standard</label>
-          <label><input type="radio" name="plan" value="premium"> Premium</label>
+        <div id="register-plan-cards" class="plan-cards" aria-live="polite"></div>
+        <input id="register-plan-selected" name="plan" type="hidden" value="prueba">
+        <small id="register-plans-feedback" class="feedback"></small>
+        <div>
+          <small>Selecciona un plan para continuar.</small>
         </div>
         <small id="err-plan" class="feedback"></small>
 
