@@ -294,12 +294,7 @@ const premiumSnap = await getDoc(premiumRef);
     }
 
     
-    const data = validSnaps.map((snap) => snap.data()).reduce((acc, data) => {
-      if (data && data.planes) {
-        acc.push(...data.planes);
-      }
-      return acc;
-    }, []);
+    const data = validSnaps.map((snap) => snap.data())
 
     // const data = validSnaps[0].exists() ? validSnaps[0].data() || {} : {};
 
