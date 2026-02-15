@@ -6,6 +6,9 @@ const { createSale } = require("./src/createSale");
 const { syncSales } = require("./src/syncSales");
 const { closeCashbox } = require("./src/closeCashbox");
 const { registerEmployerProfile } = require("./src/registerEmployerProfile");
+const {seedPlanes} = require("./src/seedPlanes");
+
+exports.seedPlanes = seedPlanes;
 
 exports.bootstrapGoogleUser = bootstrapGoogleUser;
 exports.crearEmpleado = crearEmpleado;
