@@ -300,7 +300,7 @@ const premiumSnap = await getDoc(premiumRef);
 
     console.log(data)
 
-    availablePlans = normalizePlans(data.planes);
+    availablePlans = normalizePlans(data);
 
     console.log("Planes disponibles:", availablePlans);
 
