@@ -1,7 +1,6 @@
 const { onRequest, adminAuth, db } = require("./shared/context");
-const functions = require("firebase-functions");
 
-const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] },async (req, res) => {
+const sendEmployerVerificationEmail = onRequest({ secrets: ["RESEND_API_KEY"] }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -31,6 +30,7 @@ const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] }
       res.status(404).json({ ok: false, error: "No existe perfil de usuario." });
       return;
     }
+
     const profile = userSnap.data() || {};
     const email = String(profile.email || "").trim().toLowerCase();
     if (!email) {
@@ -44,15 +44,11 @@ const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] }
       handleCodeInApp: true
     });
 
-    await sendResendEmail({
-      to: "artbenitezdev@gmail.com", //email
-      verificationLink
-    });
-
+    await sendResendEmail({ to: email, verificationLink });
     res.status(200).json({ ok: true, email });
   } catch (error) {
     console.error("sendEmployerVerificationEmail fallo:", error);
-    res.status(500).json({ ok: false, error: "No se pudo enviar el correo de verificacion.",detalle: error.message || error.toString() });
+    res.status(500).json({ ok: false, error: "No se pudo enviar el correo de verificacion." });
   }
 });
 
@@ -77,7 +73,6 @@ function normalizeAppBaseUrl(input) {
 }
 
 async function sendResendEmail({ to, verificationLink }) {
-  
   const resendApiKey = String(process.env.RESEND_API_KEY || "").trim();
   if (!resendApiKey) {
     throw new Error("Falta RESEND_API_KEY en variables de entorno.");

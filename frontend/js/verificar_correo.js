@@ -107,7 +107,10 @@ async function syncVerifiedEmailStatus() {
       return;
     }
 
-    statusNode.textContent = "Correo verificado correctamente. Ya puedes ingresar al panel.";
+    statusNode.textContent = "Correo verificado correctamente. Redirigiendo a NegocioStock.com.";
+    setTimeout(() => {
+      window.location.href = "panel.html";
+    }, 2000);
   } catch (error) {
     console.error(error);
     statusNode.textContent = "Fallo la validacion de correo. Intenta nuevamente.";
@@ -132,3 +135,7 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
+
+
+
