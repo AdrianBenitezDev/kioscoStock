@@ -1,6 +1,7 @@
 const { onRequest, adminAuth, db } = require("./shared/context");
+const functions = require("firebase-functions");
 
-const sendEmployerVerificationEmail = onRequest(async (req, res) => {
+const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] },async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -76,6 +77,7 @@ function normalizeAppBaseUrl(input) {
 }
 
 async function sendResendEmail({ to, verificationLink }) {
+  
   const resendApiKey = String(process.env.RESEND_API_KEY || "").trim();
   if (!resendApiKey) {
     throw new Error("Falta RESEND_API_KEY en variables de entorno.");
