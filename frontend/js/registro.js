@@ -525,6 +525,8 @@ async function requestVerificationEmail(idToken) {
   if (!response.ok || !result.ok) {
     throw new Error(result?.error || "No se pudo enviar el correo de verificacion.");
   }
+  console.log("respuesta")
+  console.log(result)
 }
 
 function getSendVerificationEndpoint() {
