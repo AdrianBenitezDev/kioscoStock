@@ -1,4 +1,4 @@
-import { applyActionCode, reload } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+﻿import { applyActionCode, reload } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import { ensureFirebaseAuth, firebaseAuth, firebaseConfig } from "../config.js";
 
 const targetNode = document.getElementById("verify-email-target");
@@ -107,10 +107,7 @@ async function syncVerifiedEmailStatus() {
       return;
     }
 
-    statusNode.textContent = "Correo verificado correctamente. Redirigiendo a NegocioStock.com.";
-    setTimeout(() => {
-      window.location.href = "panel.html";
-    }, 2000);
+    statusNode.textContent = "Correo verificado correctamente. Ya puedes ingresar al panel.";
   } catch (error) {
     console.error(error);
     statusNode.textContent = "Fallo la validacion de correo. Intenta nuevamente.";
@@ -135,7 +132,3 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-
-
-
-
