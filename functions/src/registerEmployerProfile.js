@@ -48,13 +48,16 @@ const registerEmployerProfile = onRequest(async (req, res) => {
       return;
     }
 
-    const negocioRef = db.collection("negocios").doc();
+    const negocioRef = db.collection("tenants").doc();
     const kioscoId = negocioRef.id;
     const now = Timestamp.now();
 
     const batch = db.batch();
+
+    //datos del empleador
     batch.set(db.collection("usuarios").doc(uid), {
       uid,
+      correoVerificado: false,
       email: payload.data.email,
       tipo: "empleador",
       role: "empleador",
@@ -63,15 +66,16 @@ const registerEmployerProfile = onRequest(async (req, res) => {
       estado: "activo",
       activo: true,
       nombreApellido: payload.data.nombreApellido,
+      domicilio: payload.data.domicilio,
+      pais: payload.data.pais,
       telefono: payload.data.telefono,
       plan: payload.data.plan,
       fechaCreacion: now,
-      createdAt: now,
       updatedAt: now
     });
 
-    batch.set(negocioRef, {
-      nid: kioscoId,
+    //datos del kiosco
+    batch.set(db.collection("tenants").doc(kioscoId), {
       kioscoId,
       ownerUid: uid,
       emailOwner: payload.data.email,

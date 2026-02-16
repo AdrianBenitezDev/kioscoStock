@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiosco Stock - Verificar Correo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top-banner">
+    <div class="top-banner-inner">
+      <strong class="top-banner-title">kioscoStock.com.ar</strong>
+      <span class="top-banner-subtitle">Verificacion de correo</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Verifica tu correo</h1>
+      <p class="subtitle">Revisamos la cuenta para habilitar tu negocio.</p>
+
+      <p id="verify-email-target"><strong>Correo:</strong> -</p>
+      <p id="verify-status" class="feedback" aria-live="polite"></p>
+
+      <div class="scan-actions">
+        <button id="verify-refresh-btn" type="button">Ya verifique mi correo</button>
+        <button id="verify-login-btn" type="button" class="mode-btn-secondary">Volver al login</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>Developer: Adrian Benitez Dev</span>
+      <span>web en construccion</span>
+    </div>
+  </footer>
+
+  <script type="module" src="js/verificar_correo.js"></script>
+</body>
+</html>

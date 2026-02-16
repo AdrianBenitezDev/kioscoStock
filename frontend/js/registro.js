@@ -1,4 +1,5 @@
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import { ensureFirebaseAuth, firebaseAuth, firebaseConfig, firestoreDb } from "../config.js";
 import { ensureCurrentUserProfile } from "./auth.js";
 import { openDatabase } from "./db.js";
@@ -288,8 +289,8 @@ async function handleRegisterSubmit(event) {
       return;
     }
 
-    registerFeedback.textContent = "Negocio registrado correctamente.";
-    window.location.href = "panel.html";
+    registerFeedback.textContent = "Registro completado. Enviando verificacion...";
+    await sendVerificationEmailAndRedirect(payload.email);
   } catch (error) {
     console.error(error);
     registerFeedback.textContent = "Error de red al registrar negocio.";
@@ -507,6 +508,28 @@ function normalizeText(value) {
 function getRegisterEndpoint() {
   const projectId = String(firebaseConfig?.projectId || "").trim();
   return `https://us-central1-${projectId}.cloudfunctions.net/registerEmployerProfile`;
+}
+
+async function sendVerificationEmailAndRedirect(email) {
+  const authUser = firebaseAuth.currentUser;
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  let mailStatus = "enviado";
+
+  try {
+    if (!authUser) throw new Error("No hay usuario autenticado para enviar verificacion.");
+
+    const actionCodeSettings = {
+      url: `${window.location.origin}/verificar-correo.html`,
+      handleCodeInApp: true
+    };
+    await sendEmailVerification(authUser, actionCodeSettings);
+  } catch (error) {
+    console.warn("No se pudo enviar correo de verificacion:", error?.message || error);
+    mailStatus = "error";
+  }
+
+  const query = new URLSearchParams({ email: normalizedEmail, status: mailStatus });
+  window.location.href = `verificar-correo.html?${query.toString()}`;
 }
 
 function escapeHtml(value) {

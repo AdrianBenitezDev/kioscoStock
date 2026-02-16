@@ -26,6 +26,11 @@ async function init() {
 
   const result = await ensureCurrentUserProfile();
   if (result.ok) {
+    if (result.user?.correoVerificado !== true && normalizeRole(result.user?.tipo || result.user?.role) === "empleador") {
+      const email = encodeURIComponent(String(result.user?.email || firebaseAuth.currentUser?.email || ""));
+      window.location.href = `verificar-correo.html?email=${email}`;
+      return;
+    }
     redirectToPanel();
     return;
   }
@@ -87,6 +92,11 @@ async function handleEmployerGoogleLogin() {
     if (role !== "empleador" || estado !== "activo") {
       loginFeedback.textContent = "Esta cuenta no tiene permisos de empleador.";
       await signOutUser();
+      return;
+    }
+    if (profileResult.user.correoVerificado !== true) {
+      const email = encodeURIComponent(String(profileResult.user.email || firebaseAuth.currentUser?.email || ""));
+      window.location.href = `verificar-correo.html?email=${email}`;
       return;
     }
 

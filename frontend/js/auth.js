@@ -16,7 +16,7 @@ import {
   where,
   collection
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-import { ensureFirebaseAuth, firebaseAuth, firestoreDb } from "../config.js";
+import { ensureFirebaseAuth, firebaseAuth, firebaseConfig, firestoreDb } from "../config.js";
 import { FIRESTORE_COLLECTIONS } from "./config.js";
 import { syncLoginEventToFirestore } from "./firebase_sync.js";
 
@@ -204,6 +204,15 @@ export async function ensureCurrentUserProfile() {
     return { ok: false, error: "El perfil no tiene kioscoId valido." };
   }
 
+  // Si Auth ya marca email verificado, actualiza Firestore en segundo plano.
+  if (profile.correoVerificado !== true && authUser.emailVerified === true) {
+    await syncVerifiedEmailFlag();
+    const refreshedSnap = await getDoc(profileRef);
+    if (refreshedSnap.exists()) {
+      Object.assign(profile, refreshedSnap.data() || {});
+    }
+  }
+
   currentSession = {
     userId: authUser.uid,
     uid: authUser.uid,
@@ -214,6 +223,7 @@ export async function ensureCurrentUserProfile() {
     tenantId,
     kioscoId: tenantId,
     estado,
+    correoVerificado: profile.correoVerificado === true,
     username: profile.username || authUser.email || authUser.uid,
     loggedAt: new Date().toISOString()
   };
@@ -224,4 +234,27 @@ export async function ensureCurrentUserProfile() {
   }
 
   return { ok: true, user: currentSession };
+}
+
+async function syncVerifiedEmailFlag() {
+  const authUser = firebaseAuth.currentUser;
+  if (!authUser) return;
+
+  try {
+    const idToken = await authUser.getIdToken(true);
+    await fetch(getMarkVerifiedEndpoint(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`
+      }
+    });
+  } catch (error) {
+    console.warn("No se pudo sincronizar correoVerificado:", error?.message || error);
+  }
+}
+
+function getMarkVerifiedEndpoint() {
+  const projectId = String(firebaseConfig?.projectId || "").trim();
+  return `https://us-central1-${projectId}.cloudfunctions.net/markEmployerEmailVerified`;
 }
