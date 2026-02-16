@@ -7,6 +7,7 @@ const { syncSales } = require("./src/syncSales");
 const { closeCashbox } = require("./src/closeCashbox");
 const { registerEmployerProfile } = require("./src/registerEmployerProfile");
 const { markEmployerEmailVerified } = require("./src/markEmployerEmailVerified");
+const { sendEmployerVerificationEmail } = require("./src/sendEmployerVerificationEmail");
 const {seedPlanes} = require("./src/seedPlanes");
 
 exports.seedPlanes = seedPlanes;
@@ -20,3 +21,4 @@ exports.syncSales = syncSales;
 exports.closeCashbox = closeCashbox;
 exports.registerEmployerProfile = registerEmployerProfile;
 exports.markEmployerEmailVerified = markEmployerEmailVerified;
+exports.sendEmployerVerificationEmail = sendEmployerVerificationEmail;

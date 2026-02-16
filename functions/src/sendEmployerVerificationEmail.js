@@ -1,0 +1,131 @@
+const { onRequest, adminAuth, db } = require("./shared/context");
+
+const sendEmployerVerificationEmail = onRequest(async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Metodo no permitido." });
+    return;
+  }
+
+  try {
+    const token = getBearerToken(req);
+    if (!token) {
+      res.status(401).json({ ok: false, error: "Falta token de autenticacion." });
+      return;
+    }
+
+    const decoded = await adminAuth.verifyIdToken(token);
+    const uid = String(decoded.uid || "").trim();
+    if (!uid) {
+      res.status(401).json({ ok: false, error: "Token invalido." });
+      return;
+    }
+
+    const userSnap = await db.collection("usuarios").doc(uid).get();
+    if (!userSnap.exists) {
+      res.status(404).json({ ok: false, error: "No existe perfil de usuario." });
+      return;
+    }
+    const profile = userSnap.data() || {};
+    const email = String(profile.email || "").trim().toLowerCase();
+    if (!email) {
+      res.status(400).json({ ok: false, error: "El usuario no tiene email valido." });
+      return;
+    }
+
+    const appBaseUrl = normalizeAppBaseUrl(req.body?.appBaseUrl);
+    const verificationLink = await adminAuth.generateEmailVerificationLink(email, {
+      url: `${appBaseUrl}/verificar-correo.html?email=${encodeURIComponent(email)}`,
+      handleCodeInApp: true
+    });
+
+    await sendResendEmail({
+      to: email,
+      verificationLink
+    });
+
+    res.status(200).json({ ok: true, email });
+  } catch (error) {
+    console.error("sendEmployerVerificationEmail fallo:", error);
+    res.status(500).json({ ok: false, error: "No se pudo enviar el correo de verificacion." });
+  }
+});
+
+function setCors(res) {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
+function getBearerToken(req) {
+  const authHeader = String(req.headers?.authorization || "");
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? String(match[1] || "").trim() : "";
+}
+
+function normalizeAppBaseUrl(input) {
+  const fallback = "https://kioscostock.com.ar";
+  const raw = String(input || "").trim();
+  if (!raw) return fallback;
+  if (!/^https?:\/\//i.test(raw)) return fallback;
+  return raw.replace(/\/+$/, "");
+}
+
+async function sendResendEmail({ to, verificationLink }) {
+  const resendApiKey = String(process.env.RESEND_API_KEY || "").trim();
+  if (!resendApiKey) {
+    throw new Error("Falta RESEND_API_KEY en variables de entorno.");
+  }
+
+  const from = String(process.env.RESEND_FROM || "onboarding@resend.dev").trim();
+  const payload = {
+    from,
+    to: [to],
+    subject: "Verifica tu correo en negocioStock.com",
+    html: buildEmailHtml({ verificationLink })
+  };
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${resendApiKey}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Resend error ${response.status}: ${body}`);
+  }
+}
+
+function buildEmailHtml({ verificationLink }) {
+  return `
+    <div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
+      <h2 style="margin:0 0 12px;">Verifica tu correo</h2>
+      <p style="margin:0 0 10px;">
+        Tu correo fue registrado en <strong>negocioStock.com</strong>.
+      </p>
+      <p style="margin:0 0 16px;">
+        Para completar tu alta, haz click en el siguiente enlace:
+      </p>
+      <p style="margin:0 0 16px;">
+        <a href="${verificationLink}" style="display:inline-block;padding:10px 14px;background:#0f766e;color:#fff;border-radius:8px;text-decoration:none;">
+          Verificar correo
+        </a>
+      </p>
+      <p style="margin:0;color:#64748b;font-size:13px;">
+        Si no solicitaste esta accion, puedes ignorar este mensaje.
+      </p>
+    </div>
+  `;
+}
+
+module.exports = {
+  sendEmployerVerificationEmail
+};

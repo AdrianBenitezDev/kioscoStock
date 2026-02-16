@@ -1,5 +1,4 @@
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-import { sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import { ensureFirebaseAuth, firebaseAuth, firebaseConfig, firestoreDb } from "../config.js";
 import { ensureCurrentUserProfile } from "./auth.js";
 import { openDatabase } from "./db.js";
@@ -289,8 +288,10 @@ async function handleRegisterSubmit(event) {
       return;
     }
 
-    registerFeedback.textContent = "Registro completado. Enviando verificacion...";
-    await sendVerificationEmailAndRedirect(payload.email);
+    registerFeedback.textContent = "Registro completado. Enviando correo de verificacion...";
+    await requestVerificationEmail(idToken);
+    const query = new URLSearchParams({ email: payload.email, sent: "1" });
+    window.location.href = `verificar-correo.html?${query.toString()}`;
   } catch (error) {
     console.error(error);
     registerFeedback.textContent = "Error de red al registrar negocio.";
@@ -510,26 +511,25 @@ function getRegisterEndpoint() {
   return `https://us-central1-${projectId}.cloudfunctions.net/registerEmployerProfile`;
 }
 
-async function sendVerificationEmailAndRedirect(email) {
-  const authUser = firebaseAuth.currentUser;
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  let mailStatus = "enviado";
+async function requestVerificationEmail(idToken) {
+  const response = await fetch(getSendVerificationEndpoint(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`
+    },
+    body: JSON.stringify({ appBaseUrl: window.location.origin })
+  });
 
-  try {
-    if (!authUser) throw new Error("No hay usuario autenticado para enviar verificacion.");
-
-    const actionCodeSettings = {
-      url: `${window.location.origin}/verificar-correo.html`,
-      handleCodeInApp: true
-    };
-    await sendEmailVerification(authUser, actionCodeSettings);
-  } catch (error) {
-    console.warn("No se pudo enviar correo de verificacion:", error?.message || error);
-    mailStatus = "error";
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    throw new Error(result?.error || "No se pudo enviar el correo de verificacion.");
   }
+}
 
-  const query = new URLSearchParams({ email: normalizedEmail, status: mailStatus });
-  window.location.href = `verificar-correo.html?${query.toString()}`;
+function getSendVerificationEndpoint() {
+  const projectId = String(firebaseConfig?.projectId || "").trim();
+  return `https://us-central1-${projectId}.cloudfunctions.net/sendEmployerVerificationEmail`;
 }
 
 function escapeHtml(value) {
