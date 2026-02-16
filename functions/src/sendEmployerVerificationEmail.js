@@ -114,7 +114,7 @@ async function sendResendEmail({ to, verificationLink }) {
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
+    res.sendtatus(500).json({ ok: false, error: "No se pudo enviar el correo de verificacion.", mensaje: `Resend API responded with status ${response.status}` });
     throw new Error(`Resend error ${response.status}: ${body}`);
   }
 }
