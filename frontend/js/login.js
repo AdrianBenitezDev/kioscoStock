@@ -139,6 +139,11 @@ async function handleEmployeeLogin(event) {
       await signOutUser();
       return;
     }
+    if (firebaseAuth.currentUser?.emailVerified !== true) {
+      loginFeedback.textContent = "Debes verificar tu correo antes de ingresar.";
+      await signOutUser();
+      return;
+    }
 
     redirectToPanel();
   } catch (error) {

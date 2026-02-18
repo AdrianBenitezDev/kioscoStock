@@ -16,11 +16,10 @@ async function requireTenantMemberContext(request) {
     throw new HttpsError("permission-denied", "Tu sesion no tiene tenant valido.");
   }
 
-  const callerDoc = await db.collection("usuarios").doc(uid).get();
-  if (!callerDoc.exists) {
+  const caller = await resolveCallerProfile(uid);
+  if (!caller) {
     throw new HttpsError("permission-denied", "Tu usuario no existe en la base.");
   }
-  const caller = callerDoc.data() || {};
   if (String(caller.tenantId || "").trim() !== tenantId) {
     throw new HttpsError("permission-denied", "Tu tenant no coincide con el perfil.");
   }
@@ -30,6 +29,29 @@ async function requireTenantMemberContext(request) {
     tenantId,
     role: String(caller.role || "empleado").trim(),
     caller
+  };
+}
+
+async function resolveCallerProfile(uid) {
+  const userDoc = await db.collection("usuarios").doc(uid).get();
+  if (userDoc.exists) {
+    const data = userDoc.data() || {};
+    return {
+      ...data,
+      tenantId: String(data.tenantId || data.kioscoId || "").trim()
+    };
+  }
+
+  const employeeDoc = await db.collection("empleados").doc(uid).get();
+  if (!employeeDoc.exists) return null;
+
+  const data = employeeDoc.data() || {};
+  return {
+    ...data,
+    tenantId: String(data.comercioId || data.tenantId || "").trim(),
+    role: String(data.role || "empleado").trim(),
+    activo: true,
+    estado: "activo"
   };
 }
 

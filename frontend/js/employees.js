@@ -49,7 +49,7 @@ function normalizePayload(values) {
 
   return {
     ok: true,
-    data: { displayName, username, email, password }
+    data: { displayName, username, email, password, appBaseUrl: window.location.origin }
   };
 }
 

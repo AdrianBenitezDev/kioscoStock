@@ -29,7 +29,7 @@ const closeCashbox = onCall(async (request) => {
     const sale = docSnap.data() || {};
     ventasIncluidas.push(docSnap.id);
     totalCaja += Number(sale.total || 0);
-    totalGananciaRealCaja += Number(sale.ganaciaReal ?? sale.profit ?? 0);
+    totalGananciaRealCaja += Number(sale.gananciaReal ?? sale.ganaciaReal ?? sale.profit ?? 0);
 
     const saleCreatedAt = normalizeToDate(sale.createdAt);
     if (saleCreatedAt && (!fechaApertura || saleCreatedAt < fechaApertura)) {

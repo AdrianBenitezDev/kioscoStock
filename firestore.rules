@@ -31,10 +31,22 @@ service cloud.firestore {
       return role() == "empleador";
     }
 
+    function hasVerifiedEmail() {
+      return isAuthenticated() && request.auth.token.email_verified == true;
+    }
+
     match /usuarios/{uid} {
       allow read: if isAuthenticated() && (
         uid == request.auth.uid ||
         (resource.data.tenantId is string && resource.data.tenantId == tenantId())
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /empleados/{uid} {
+      allow read: if hasVerifiedEmail() && (
+        uid == request.auth.uid ||
+        (resource.data.comercioId is string && resource.data.comercioId == tenantId())
       );
       allow create, update, delete: if false;
     }

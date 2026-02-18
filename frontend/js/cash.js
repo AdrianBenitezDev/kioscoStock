@@ -150,7 +150,9 @@ function summarizeSales(sales) {
   const totalAmount = Number(sales.reduce((acc, sale) => acc + Number(sale.total || 0), 0).toFixed(2));
   const totalCost = Number(sales.reduce((acc, sale) => acc + Number(sale.totalCost || 0), 0).toFixed(2));
   const profitAmount = Number(
-    sales.reduce((acc, sale) => acc + Number(sale.ganaciaReal ?? sale.profit ?? 0), 0).toFixed(2)
+    sales
+      .reduce((acc, sale) => acc + Number(sale.gananciaReal ?? sale.ganaciaReal ?? sale.profit ?? 0), 0)
+      .toFixed(2)
   );
 
   return { salesCount, itemsCount, totalAmount, totalCost, profitAmount };

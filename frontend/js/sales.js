@@ -56,7 +56,7 @@ export async function syncPendingSales() {
       idVenta: String(sale.id || "").trim(),
       total: Number(sale.total || 0),
       totalCost: Number(sale.totalCost || 0),
-      ganaciaReal: Number(sale.ganaciaReal ?? sale.profit ?? 0),
+      gananciaReal: Number(sale.gananciaReal ?? sale.ganaciaReal ?? sale.profit ?? 0),
       itemsCount: Number(sale.itemsCount || 0),
       createdAt: sale.createdAt || null,
       productos: (items || []).map((item) => ({
@@ -67,7 +67,7 @@ export async function syncPendingSales() {
         precioCompraUnitario: Number(item.unitProviderCost || 0),
         subtotal: Number(item.subtotal || 0),
         subtotalCosto: Number(item.subtotalCost || 0),
-        ganaciaRealVenta: Number(item.ganaciaRealVenta || 0)
+        gananciaRealVenta: Number(item.gananciaRealVenta ?? item.ganaciaRealVenta ?? 0)
       }))
     });
   }
@@ -141,7 +141,7 @@ async function finalizeSaleLocally(cartItems, session, { authoritative }) {
   let itemsCount = 0;
   let total = 0;
   let totalCost = 0;
-  let ganaciaReal = 0;
+  let gananciaReal = 0;
   let salePayload = null;
 
   try {
@@ -176,11 +176,11 @@ async function finalizeSaleLocally(cartItems, session, { authoritative }) {
         );
         const subtotal = round2(unitPrice * requestedQty);
         const subtotalCost = round2(unitProviderCost * requestedQty);
-        const ganaciaRealVenta = round2((unitPrice - unitProviderCost) * requestedQty);
+        const gananciaRealVenta = round2((unitPrice - unitProviderCost) * requestedQty);
 
         total += subtotal;
         totalCost += subtotalCost;
-        ganaciaReal += ganaciaRealVenta;
+        gananciaReal += gananciaRealVenta;
         itemsCount += requestedQty;
 
         saleItemsStore.put({
@@ -196,14 +196,16 @@ async function finalizeSaleLocally(cartItems, session, { authoritative }) {
           subtotal,
           unitProviderCost,
           subtotalCost,
-          ganaciaRealVenta,
+          gananciaRealVenta,
           createdAt: nowIso
         });
       }
 
       const saleTotal = round2(authoritative ? Number(authoritative.totalCalculado || 0) : total);
       const saleCost = round2(authoritative ? Number(authoritative.totalCosto || 0) : totalCost);
-      const saleGanaciaReal = round2(authoritative ? Number(authoritative.ganaciaReal || 0) : ganaciaReal);
+      const saleGananciaReal = round2(
+        authoritative ? Number(authoritative.gananciaReal ?? authoritative.ganaciaReal ?? 0) : gananciaReal
+      );
 
       salePayload = {
         id: saleId,
@@ -213,8 +215,8 @@ async function finalizeSaleLocally(cartItems, session, { authoritative }) {
         role: session.role,
         total: saleTotal,
         totalCost: saleCost,
-        ganaciaReal: saleGanaciaReal,
-        profit: saleGanaciaReal,
+        gananciaReal: saleGananciaReal,
+        profit: saleGananciaReal,
         synced: Boolean(authoritative),
         backups: Boolean(authoritative),
         cajaCerrada: false,
@@ -233,8 +235,8 @@ async function finalizeSaleLocally(cartItems, session, { authoritative }) {
     saleId,
     total: round2(salePayload?.total || total),
     totalCost: round2(salePayload?.totalCost || totalCost),
-    ganaciaReal: round2(salePayload?.ganaciaReal || ganaciaReal),
-    profit: round2(salePayload?.ganaciaReal || ganaciaReal),
+    gananciaReal: round2(salePayload?.gananciaReal ?? salePayload?.ganaciaReal ?? gananciaReal),
+    profit: round2(salePayload?.gananciaReal ?? salePayload?.ganaciaReal ?? gananciaReal),
     itemsCount
   };
 }

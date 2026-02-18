@@ -28,7 +28,7 @@ const syncSales = onCall(async (request) => {
         productos: sale.productos,
         total: sale.total,
         totalCost: sale.totalCost,
-        ganaciaReal: sale.ganaciaReal,
+        gananciaReal: sale.gananciaReal,
         usuarioUid: uid,
         usuarioNombre: String(caller.username || caller.displayName || "usuario"),
         cajaCerrada: false,
@@ -62,7 +62,7 @@ function normalizeSale(rawSale) {
   const idVenta = String(rawSale?.idVenta || "").trim();
   const total = Number(rawSale?.total || 0);
   const totalCost = Number(rawSale?.totalCost || 0);
-  const ganaciaReal = Number(rawSale?.ganaciaReal || 0);
+  const gananciaReal = Number(rawSale?.gananciaReal ?? rawSale?.ganaciaReal ?? 0);
   const itemsCount = Number(rawSale?.itemsCount || 0);
   const createdAtInput = rawSale?.createdAt;
   const productos = Array.isArray(rawSale?.productos) ? rawSale.productos : [];
@@ -76,8 +76,8 @@ function normalizeSale(rawSale) {
   if (!Number.isFinite(totalCost) || totalCost < 0) {
     throw new HttpsError("invalid-argument", `Venta invalida (${idVenta}): totalCost.`);
   }
-  if (!Number.isFinite(ganaciaReal)) {
-    throw new HttpsError("invalid-argument", `Venta invalida (${idVenta}): ganaciaReal.`);
+  if (!Number.isFinite(gananciaReal)) {
+    throw new HttpsError("invalid-argument", `Venta invalida (${idVenta}): gananciaReal.`);
   }
   if (!Number.isFinite(itemsCount) || itemsCount < 0) {
     throw new HttpsError("invalid-argument", `Venta invalida (${idVenta}): itemsCount.`);
@@ -87,7 +87,7 @@ function normalizeSale(rawSale) {
     idVenta,
     total: round2(total),
     totalCost: round2(totalCost),
-    ganaciaReal: round2(ganaciaReal),
+    gananciaReal: round2(gananciaReal),
     itemsCount: Math.trunc(itemsCount),
     productos: productos.map(normalizeSaleItem),
     createdAt: normalizeCreatedAt(createdAtInput)
@@ -102,7 +102,7 @@ function normalizeSaleItem(rawItem) {
   const precioCompraUnitario = Number(rawItem?.precioCompraUnitario || 0);
   const subtotal = Number(rawItem?.subtotal || 0);
   const subtotalCosto = Number(rawItem?.subtotalCosto || 0);
-  const ganaciaRealVenta = Number(rawItem?.ganaciaRealVenta || 0);
+  const gananciaRealVenta = Number(rawItem?.gananciaRealVenta ?? rawItem?.ganaciaRealVenta ?? 0);
 
   if (!codigo) {
     throw new HttpsError("invalid-argument", "Item de venta invalido: falta codigo.");
@@ -119,7 +119,7 @@ function normalizeSaleItem(rawItem) {
     precioCompraUnitario: round2(precioCompraUnitario),
     subtotal: round2(subtotal),
     subtotalCosto: round2(subtotalCosto),
-    ganaciaRealVenta: round2(ganaciaRealVenta)
+    gananciaRealVenta: round2(gananciaRealVenta)
   };
 }
 

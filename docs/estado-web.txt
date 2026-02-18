@@ -24,7 +24,7 @@ Backend:
 - syncSales permite consolidar ventas offline luego.
 Observaciones:
 - Estrategia correcta para continuidad operativa.
-- Hay mezcla de nombres ganaciaReal/gananciaReal en algunas capas (no rompe flujo, pero conviene normalizar).
+- Nomenclatura normalizada a gananciaReal/gananciaRealVenta, manteniendo fallback legacy para ganaciaReal/ganaciaRealVenta.
 
 3) HACER CAJA (CIERRE)
 Estado: FUNCIONANDO CON INCONSISTENCIA DE ALCANCE

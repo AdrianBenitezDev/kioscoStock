@@ -184,9 +184,8 @@ export async function ensureCurrentUserProfile() {
     return { ok: false, error: "No hay sesion iniciada.", requiresLogin: true };
   }
 
-  const profileRef = doc(firestoreDb, FIRESTORE_COLLECTIONS.usuarios, authUser.uid);
-  const profileSnap = await getDoc(profileRef);
-  if (!profileSnap.exists()) {
+  const resolved = await resolveUserProfile(authUser.uid);
+  if (!resolved) {
     currentSession = null;
     return {
       ok: false,
@@ -194,8 +193,9 @@ export async function ensureCurrentUserProfile() {
     };
   }
 
-  const profile = profileSnap.data() || {};
-  const tenantId = String(profile.kioscoId || profile.tenantId || "").trim();
+  const profile = resolved.profile;
+  const profileRef = resolved.ref;
+  const tenantId = String(profile.kioscoId || profile.tenantId || profile.comercioId || "").trim();
   const role = String(profile.tipo || profile.role || "empleado").trim();
   const estado = String(profile.estado || (profile.activo === false ? "inactivo" : "activo")).trim();
 
@@ -205,7 +205,7 @@ export async function ensureCurrentUserProfile() {
   }
 
   // Si Auth ya marca email verificado, actualiza Firestore en segundo plano.
-  if (profile.correoVerificado !== true && authUser.emailVerified === true) {
+  if (role === "empleador" && profile.correoVerificado !== true && authUser.emailVerified === true) {
     await syncVerifiedEmailFlag();
     const refreshedSnap = await getDoc(profileRef);
     if (refreshedSnap.exists()) {
@@ -223,7 +223,7 @@ export async function ensureCurrentUserProfile() {
     tenantId,
     kioscoId: tenantId,
     estado,
-    correoVerificado: profile.correoVerificado === true,
+    correoVerificado: role === "empleado" ? authUser.emailVerified === true : profile.correoVerificado === true,
     username: profile.username || authUser.email || authUser.uid,
     loggedAt: new Date().toISOString()
   };
@@ -234,6 +234,22 @@ export async function ensureCurrentUserProfile() {
   }
 
   return { ok: true, user: currentSession };
+}
+
+async function resolveUserProfile(uid) {
+  const userRef = doc(firestoreDb, FIRESTORE_COLLECTIONS.usuarios, uid);
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists()) {
+    return { profile: userSnap.data() || {}, ref: userRef };
+  }
+
+  const employeeRef = doc(firestoreDb, FIRESTORE_COLLECTIONS.empleados, uid);
+  const employeeSnap = await getDoc(employeeRef);
+  if (employeeSnap.exists()) {
+    return { profile: employeeSnap.data() || {}, ref: employeeRef };
+  }
+
+  return null;
 }
 
 async function syncVerifiedEmailFlag() {

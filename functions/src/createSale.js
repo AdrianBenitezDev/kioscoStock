@@ -32,7 +32,7 @@ const createSale = onCall(async (request) => {
   const saleItems = [];
   let total = 0;
   let totalCosto = 0;
-  let ganaciaReal = 0;
+  let gananciaReal = 0;
   let itemsCount = 0;
 
   const batch = db.batch();
@@ -61,7 +61,7 @@ const createSale = onCall(async (request) => {
 
     const subtotal = round2(precioVenta * cantidad);
     const subtotalCosto = round2(precioCompra * cantidad);
-    const ganaciaRealVenta = round2((precioVenta - precioCompra) * cantidad);
+    const gananciaRealVenta = round2((precioVenta - precioCompra) * cantidad);
 
     saleItems.push({
       codigo,
@@ -71,12 +71,12 @@ const createSale = onCall(async (request) => {
       precioCompraUnitario: round2(precioCompra),
       subtotal,
       subtotalCosto,
-      ganaciaRealVenta
+      gananciaRealVenta
     });
 
     total += subtotal;
     totalCosto += subtotalCosto;
-    ganaciaReal += ganaciaRealVenta;
+    gananciaReal += gananciaRealVenta;
     itemsCount += cantidad;
 
     batch.update(productRef, {
@@ -87,7 +87,7 @@ const createSale = onCall(async (request) => {
 
   total = round2(total);
   totalCosto = round2(totalCosto);
-  ganaciaReal = round2(ganaciaReal);
+  gananciaReal = round2(gananciaReal);
 
   const saleRef = db.collection("tenants").doc(tenantId).collection("ventas").doc(idVenta);
   batch.set(saleRef, {
@@ -96,7 +96,7 @@ const createSale = onCall(async (request) => {
     productos: saleItems,
     total,
     totalCosto,
-    ganaciaReal,
+    gananciaReal,
     usuarioUid: uid,
     usuarioNombre: String(caller.username || caller.displayName || "usuario"),
     cajaCerrada: false,
@@ -112,7 +112,7 @@ const createSale = onCall(async (request) => {
     idVenta,
     totalCalculado: total,
     totalCosto,
-    ganaciaReal,
+    gananciaReal,
     itemsCount,
     productos: saleItems
   };

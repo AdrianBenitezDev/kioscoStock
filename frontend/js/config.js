@@ -12,6 +12,7 @@ export const STORES = {
 export const FIRESTORE_COLLECTIONS = {
   tenants: "tenants",
   usuarios: "usuarios",
+  empleados: "empleados",
   productos: "productos",
   ventas: "ventas",
   ventaItems: "venta_items",
