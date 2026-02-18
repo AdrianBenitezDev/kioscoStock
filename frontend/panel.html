@@ -13,7 +13,12 @@
   <header class="top-banner">
     <div class="top-banner-inner">
       <div>
-        <strong class="top-banner-title">stockfacil.com.ar</strong>
+        <strong class="top-banner-title top-banner-brand">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 17l9 4 9-4"/><path d="M3 12l9 4 9-4"/></svg>
+          </span>
+          <span>stockfacil.com.ar</span>
+        </strong>
         <span class="top-banner-subtitle">Panel operativo en linea</span>
       </div>
       <div class="top-banner-controls">
@@ -201,7 +206,7 @@
       <section id="cash-panel" class="panel hidden">
         <h3>Caja</h3>
         <p id="cash-scope-label" class="subtitle"></p>
-        <div class="cash-summary">
+        <div id="cash-summary" class="cash-summary">
           <article class="cash-card">
             <h4>Ventas del dia</h4>
             <p id="cash-sales-count" class="cash-value">0</p>
@@ -214,11 +219,11 @@
             <h4>Total a entregar</h4>
             <p id="cash-total-amount" class="cash-value">$0.00</p>
           </article>
-          <article class="cash-card">
+          <article id="cash-card-cost" class="cash-card">
             <h4>Costo del dia</h4>
             <p id="cash-total-cost" class="cash-value">$0.00</p>
           </article>
-          <article class="cash-card">
+          <article id="cash-card-profit" class="cash-card">
             <h4>Ganancia del dia</h4>
             <p id="cash-profit-amount" class="cash-value">$0.00</p>
           </article>

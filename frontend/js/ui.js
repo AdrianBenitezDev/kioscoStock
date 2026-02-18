@@ -13,6 +13,9 @@ export function showAppShell(user) {
   dom.providerCostInput.required = isOwner;
   dom.employeeAdminPanel.classList.toggle("hidden", !isOwner);
   dom.configModeBtn.classList.toggle("hidden", !isOwner);
+  dom.cashCardCost?.classList.toggle("hidden", !isOwner);
+  dom.cashCardProfit?.classList.toggle("hidden", !isOwner);
+  dom.cashSummary?.classList.toggle("cash-summary-limited", !isOwner);
   setMode("add");
 }
 

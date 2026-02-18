@@ -627,6 +627,10 @@ thead th {
   margin-bottom: 0.8rem;
 }
 
+.cash-summary.cash-summary-limited {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .cash-card {
   border: 1px solid var(--line);
   border-radius: 10px;
