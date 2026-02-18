@@ -58,6 +58,7 @@ export const dom = {
   saleTableBody: document.getElementById("sale-table-body"),
   saleTotal: document.getElementById("sale-total"),
   offlineSyncBanner: document.getElementById("offline-sync-banner"),
+  floatingSyncBtn: document.getElementById("floating-sync-btn"),
   cashScopeLabel: document.getElementById("cash-scope-label"),
   cashPrivacyToggle: document.getElementById("cash-privacy-toggle"),
   cashSalesCount: document.getElementById("cash-sales-count"),

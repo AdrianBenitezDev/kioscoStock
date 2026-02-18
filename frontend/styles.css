@@ -132,6 +132,29 @@ body {
   color: #ffffff;
 }
 
+.floating-sync-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 96;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.62rem 0.85rem;
+  background: #0f766e;
+  color: #ffffff;
+  border: 1px solid #99f6e4;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.22);
+}
+
+.floating-sync-btn.is-loading {
+  pointer-events: none;
+  opacity: 0.9;
+}
+
 .container {
   width: min(96%, 1160px);
   padding: 2rem;
@@ -761,6 +784,13 @@ button:disabled {
     width: calc(100% - 1rem);
     max-width: 460px;
     border-radius: 12px;
+  }
+
+  .floating-sync-btn {
+    right: 10px;
+    bottom: 12px;
+    padding: 0.56rem 0.72rem;
+    font-size: 0.84rem;
   }
 
   .container {

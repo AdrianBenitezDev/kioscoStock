@@ -99,6 +99,7 @@ async function init() {
   initSaleModeSwitch();
   focusBarcodeInputIfDesktop();
   renderCurrentSale(currentSaleItems);
+  await ensureInitialProductsConsistency();
   await refreshStock();
   await refreshCashPanel();
   await refreshEmployeesPanel();
@@ -148,6 +149,7 @@ function wireEvents() {
   dom.closeShiftBtn.addEventListener("click", handleCloseShift);
   dom.refreshCashBtn.addEventListener("click", refreshCashPanel);
   dom.cashPrivacyToggle?.addEventListener("click", handleToggleCashPrivacy);
+  dom.floatingSyncBtn?.addEventListener("click", handleFloatingSyncClick);
   dom.employeeListTableBody?.addEventListener("click", handleDeleteEmployeeClick);
   window.addEventListener("online", handleOnlineReconnection);
   window.addEventListener("offline", handleOfflineDetected);
@@ -199,6 +201,18 @@ async function handleOnlineReconnection() {
   await runOfflinePendingSync();
 }
 
+async function handleFloatingSyncClick() {
+  if (!dom.floatingSyncBtn) return;
+  dom.floatingSyncBtn.classList.add("is-loading");
+  dom.floatingSyncBtn.disabled = true;
+  try {
+    await runOfflinePendingSyncInternal({ forceCloudPull: true, showSuccessFeedback: true });
+  } finally {
+    dom.floatingSyncBtn.disabled = false;
+    dom.floatingSyncBtn.classList.remove("is-loading");
+  }
+}
+
 function handleOfflineDetected() {
   setOfflineSyncBannerState("offline");
 }
@@ -221,11 +235,18 @@ function initializeOfflineSyncBanner() {
 }
 
 async function runOfflinePendingSync() {
+  await runOfflinePendingSyncInternal({ forceCloudPull: false, showSuccessFeedback: false });
+}
+
+async function runOfflinePendingSyncInternal({ forceCloudPull = false, showSuccessFeedback = false } = {}) {
   if (offlineSyncInProgress) return;
   if (!dom.offlineSyncBanner) return;
 
   if (!navigator.onLine) {
     setOfflineSyncBannerState("offline");
+    if (showSuccessFeedback) {
+      setProductFeedbackError("Sin conexion. No se puede sincronizar ahora.");
+    }
     return;
   }
 
@@ -247,11 +268,17 @@ async function runOfflinePendingSync() {
           shouldRefreshStock = true;
         }
       }
+      const cloudPull = await syncProductsFromCloudForCurrentKiosco();
+      if (!cloudPull.ok) {
+        syncError = syncError || cloudPull.error || "No se pudieron descargar productos desde Firebase.";
+      } else if (cloudPull.syncedCount > 0 || forceCloudPull) {
+        shouldRefreshStock = true;
+      }
     } else {
       const cloudPull = await syncProductsFromCloudForCurrentKiosco();
       if (!cloudPull.ok) {
         syncError = cloudPull.error || "No se pudieron descargar productos desde Firebase.";
-      } else if (cloudPull.syncedCount > 0) {
+      } else if (cloudPull.syncedCount > 0 || forceCloudPull) {
         shouldRefreshStock = true;
       }
     }
@@ -274,10 +301,21 @@ async function runOfflinePendingSync() {
     if (shouldRefreshCash) {
       await refreshCashPanel();
     }
+    if (showSuccessFeedback) {
+      setProductFeedbackSuccess("Sincronizacion completada correctamente.");
+    }
     hideOfflineSyncBanner();
   } finally {
     offlineSyncInProgress = false;
   }
+}
+
+async function ensureInitialProductsConsistency() {
+  if (!navigator.onLine) return;
+  if (isEmployerRole(currentUser?.role)) {
+    await syncPendingProducts({ force: true });
+  }
+  await syncProductsFromCloudForCurrentKiosco();
 }
 
 async function handleCreateEmployeeSubmit(event) {
