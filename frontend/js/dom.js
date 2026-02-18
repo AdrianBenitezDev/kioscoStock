@@ -67,6 +67,8 @@ export const dom = {
   cashTotalCost: document.getElementById("cash-total-cost"),
   cashProfitAmount: document.getElementById("cash-profit-amount"),
   cashClosureStatus: document.getElementById("cash-closure-status"),
+  cashSalesProfitCol: document.getElementById("cash-sales-profit-col"),
+  cashClosuresSection: document.getElementById("cash-closures-section"),
   closeShiftBtn: document.getElementById("close-shift-btn"),
   refreshCashBtn: document.getElementById("refresh-cash-btn"),
   cashFeedback: document.getElementById("cash-feedback"),

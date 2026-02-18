@@ -605,9 +605,12 @@ async function refreshCashPanel() {
 
   renderCashScopeLabel(snapshot.scopeLabel);
   renderCashSummary(snapshot.summary);
-  renderCashSalesTable(snapshot.sales);
+  const canViewProfit = isEmployerRole(currentUser?.role);
+  renderCashSalesTable(snapshot.sales, { canViewProfit });
   renderCashClosureStatus(snapshot.todayClosure);
-  renderCashClosuresTable(snapshot.recentClosures);
+  if (canViewProfit) {
+    renderCashClosuresTable(snapshot.recentClosures);
+  }
   dom.closeShiftBtn.disabled = Boolean(snapshot.todayClosure);
 }
 

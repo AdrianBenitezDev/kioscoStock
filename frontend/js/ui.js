@@ -16,6 +16,8 @@ export function showAppShell(user) {
   dom.cashCardCost?.classList.toggle("hidden", !isOwner);
   dom.cashCardProfit?.classList.toggle("hidden", !isOwner);
   dom.cashSummary?.classList.toggle("cash-summary-limited", !isOwner);
+  dom.cashSalesProfitCol?.classList.toggle("hidden", !isOwner);
+  dom.cashClosuresSection?.classList.toggle("hidden", !isOwner);
   setMode("add");
 }
 
@@ -180,9 +182,10 @@ export function renderCashSummary(summary) {
   dom.cashProfitAmount.textContent = `$${Number(summary.profitAmount || 0).toFixed(2)}`;
 }
 
-export function renderCashSalesTable(sales) {
+export function renderCashSalesTable(sales, { canViewProfit = true } = {}) {
+  const emptyColspan = canViewProfit ? 5 : 4;
   if (!sales || sales.length === 0) {
-    dom.cashSalesTableBody.innerHTML = '<tr><td colspan="5">No hay ventas registradas hoy.</td></tr>';
+    dom.cashSalesTableBody.innerHTML = `<tr><td colspan="${emptyColspan}">No hay ventas registradas hoy.</td></tr>`;
     return;
   }
 
@@ -196,7 +199,7 @@ export function renderCashSalesTable(sales) {
         `<td>${username}</td>`,
         `<td>${Number(sale.itemsCount || 0)}</td>`,
         `<td>$${Number(sale.total || 0).toFixed(2)}</td>`,
-        `<td>$${Number(sale.profit || 0).toFixed(2)}</td>`,
+        ...(canViewProfit ? [`<td>$${Number(sale.profit || 0).toFixed(2)}</td>`] : []),
         "</tr>"
       ].join("");
     })
