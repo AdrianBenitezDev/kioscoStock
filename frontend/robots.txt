@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /panel.html
+Disallow: /verificar-correo.html
+
+Sitemap: https://www.stockfacil.com.ar/sitemap.xml

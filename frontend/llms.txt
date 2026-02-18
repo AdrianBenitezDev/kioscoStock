@@ -1,0 +1,21 @@
+# StockFacil
+
+StockFacil es una aplicacion web para gestion de stock, ventas y caja diaria orientada a kioscos y comercios pequenos.
+
+## Public Pages
+- https://www.stockfacil.com.ar/
+- https://www.stockfacil.com.ar/registro.html
+
+## Private or Restricted Pages
+- https://www.stockfacil.com.ar/panel.html (requiere autenticacion)
+- https://www.stockfacil.com.ar/verificar-correo.html (flujo de cuenta)
+
+## Product Summary
+- Alta y administracion de productos.
+- Venta con carga por codigo de barras/camara.
+- Control de stock y alertas de faltantes.
+- Resumen de caja y cierres diarios.
+- Gestion de empleadores y empleados.
+
+## Contact
+- Sitio: https://www.stockfacil.com.ar/
