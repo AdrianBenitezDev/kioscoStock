@@ -57,11 +57,13 @@ const crearEmpleado = onCall({ secrets: ["RESEND_API_KEY"] }, async (request) =>
       uid: createdUser.uid,
       role: "empleado",
       comercioId: tenantId,
+      tenantId,
       email,
       displayName,
       username,
       usernameKey,
       emailEmpleador: employerEmail,
+      puedeCrearProductos: false,
       createdAt: now,
       createdBy: callerUid,
       emailVerified: false

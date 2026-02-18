@@ -49,7 +49,11 @@ import {
   setProductFeedbackSuccess,
   showAppShell
 } from "./ui.js";
-import { createEmployeeViaCallable, deleteEmployeeViaCallable } from "./employees.js";
+import {
+  createEmployeeViaCallable,
+  deleteEmployeeViaCallable,
+  updateEmployeeCreateProductsPermission
+} from "./employees.js";
 
 const currentSaleItems = [];
 let scannerMode = null;
@@ -92,7 +96,7 @@ async function init() {
   currentUser = profileResult.user;
 
   showAppShell(currentUser);
-  dom.syncProductsBtn?.classList.toggle("hidden", !isEmployerRole(currentUser.role));
+  dom.syncProductsBtn?.classList.toggle("hidden", !canCurrentUserCreateProducts());
   renderCategoryOptions(PRODUCT_CATEGORIES);
   renderStockCategoryOptions(PRODUCT_CATEGORIES);
   setupDeviceSpecificUI();
@@ -151,6 +155,7 @@ function wireEvents() {
   dom.cashPrivacyToggle?.addEventListener("click", handleToggleCashPrivacy);
   dom.floatingSyncBtn?.addEventListener("click", handleFloatingSyncClick);
   dom.employeeListTableBody?.addEventListener("click", handleDeleteEmployeeClick);
+  dom.employeeListTableBody?.addEventListener("change", handleToggleEmployeeCreateProducts);
   window.addEventListener("online", handleOnlineReconnection);
   window.addEventListener("offline", handleOfflineDetected);
   dom.offlineSyncBanner?.addEventListener("click", handleOfflineBannerClick);
@@ -258,7 +263,7 @@ async function runOfflinePendingSyncInternal({ forceCloudPull = false, showSucce
   let syncError = "";
 
   try {
-    if (isEmployerRole(currentUser?.role)) {
+    if (canCurrentUserCreateProducts()) {
       const productsSync = await syncPendingProducts({ force: true });
       if (!productsSync.ok) {
         syncError = productsSync.error || "No se pudieron sincronizar productos pendientes.";
@@ -312,7 +317,7 @@ async function runOfflinePendingSyncInternal({ forceCloudPull = false, showSucce
 
 async function ensureInitialProductsConsistency() {
   if (!navigator.onLine) return;
-  if (isEmployerRole(currentUser?.role)) {
+  if (canCurrentUserCreateProducts()) {
     await syncPendingProducts({ force: true });
   }
   await syncProductsFromCloudForCurrentKiosco();
@@ -355,7 +360,7 @@ async function refreshEmployeesPanel() {
   if (!dom.employeeListTableBody) return;
   if (!currentUser || currentUser.role !== "empleador") return;
 
-  dom.employeeListTableBody.innerHTML = '<tr><td colspan="5">Cargando empleados...</td></tr>';
+  dom.employeeListTableBody.innerHTML = '<tr><td colspan="6">Cargando empleados...</td></tr>';
   try {
     const q = query(
       collection(firestoreDb, "empleados"),
@@ -366,7 +371,7 @@ async function refreshEmployeesPanel() {
     rows.sort((a, b) => formatDateValue(b.createdAt) - formatDateValue(a.createdAt));
 
     if (!rows.length) {
-      dom.employeeListTableBody.innerHTML = '<tr><td colspan="5">No hay empleados registrados.</td></tr>';
+      dom.employeeListTableBody.innerHTML = '<tr><td colspan="6">No hay empleados registrados.</td></tr>';
       return;
     }
 
@@ -375,13 +380,16 @@ async function refreshEmployeesPanel() {
         const name = escapeHtml(employee.displayName || employee.username || employee.uid || "-");
         const email = escapeHtml(employee.email || "-");
         const verified = employee.emailVerified === true ? "Si" : "No";
+        const canCreateProducts = employee.puedeCrearProductos === true;
         const created = escapeHtml(formatDateForTable(employee.createdAt));
         const uid = escapeHtml(employee.uid || employee.id || "");
+        const toggleId = `employee-create-products-${uid}`;
         return [
           "<tr>",
           `<td>${name}</td>`,
           `<td>${email}</td>`,
           `<td>${verified}</td>`,
+          `<td><input id="${toggleId}" type="checkbox" data-toggle-create-products-id="${uid}" ${canCreateProducts ? "checked" : ""}></td>`,
           `<td>${created}</td>`,
           `<td><button type="button" class="stock-delete-btn icon-only-btn" data-delete-employee-id="${uid}" title="Eliminar empleado" aria-label="Eliminar empleado">${iconOnly(ICON_TRASH_SVG)}</button></td>`,
           "</tr>"
@@ -391,7 +399,36 @@ async function refreshEmployeesPanel() {
   } catch (error) {
     console.error("No se pudo cargar listado de empleados:", error);
     dom.employeeListTableBody.innerHTML =
-      '<tr><td colspan="5">No se pudo cargar empleados. Verifica permisos y reglas.</td></tr>';
+      '<tr><td colspan="6">No se pudo cargar empleados. Verifica permisos y reglas.</td></tr>';
+  }
+}
+
+async function handleToggleEmployeeCreateProducts(event) {
+  const input = event.target.closest("[data-toggle-create-products-id]");
+  if (!input) return;
+
+  const uidEmpleado = String(input.getAttribute("data-toggle-create-products-id") || "").trim();
+  if (!uidEmpleado) return;
+
+  const nextValue = Boolean(input.checked);
+  input.disabled = true;
+  clearEmployeeFeedback();
+
+  try {
+    const result = await updateEmployeeCreateProductsPermission(uidEmpleado, nextValue);
+    if (!result.ok) {
+      input.checked = !nextValue;
+      setEmployeeFeedback(result.error);
+      return;
+    }
+    setEmployeeFeedback(
+      nextValue
+        ? "Permiso activado: el empleado ya puede crear productos."
+        : "Permiso removido: el empleado ya no puede crear productos.",
+      "success"
+    );
+  } finally {
+    input.disabled = false;
   }
 }
 
@@ -477,6 +514,10 @@ function applyStockFilters() {
 }
 
 async function switchMode(mode) {
+  if (mode === "add" && !canCurrentUserCreateProducts()) {
+    setProductFeedbackError("No tienes permiso para crear productos.");
+    return;
+  }
   if (mode !== "sell" && mode !== "add" && mode !== "stock") {
     await stopAnyScanner();
   }
@@ -973,6 +1014,12 @@ function shouldEnableKeyboardScanner(mode) {
 function isEmployerRole(role) {
   const normalized = String(role || "").trim().toLowerCase();
   return normalized === "empleador" || normalized === "dueno";
+}
+
+function canCurrentUserCreateProducts() {
+  if (!currentUser) return false;
+  if (isEmployerRole(currentUser.role)) return true;
+  return currentUser.canCreateProducts === true || currentUser.puedeCrearProductos === true;
 }
 
 function loadUiModePreference() {

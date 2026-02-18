@@ -213,6 +213,11 @@ export async function ensureCurrentUserProfile() {
     }
   }
 
+  const canCreateProducts =
+    role === "empleador"
+      ? true
+      : profile.puedeCrearProductos === true || String(profile.puedeCrearProductos || "").toLowerCase() === "true";
+
   currentSession = {
     userId: authUser.uid,
     uid: authUser.uid,
@@ -224,6 +229,8 @@ export async function ensureCurrentUserProfile() {
     kioscoId: tenantId,
     estado,
     correoVerificado: role === "empleado" ? authUser.emailVerified === true : profile.correoVerificado === true,
+    puedeCrearProductos: canCreateProducts,
+    canCreateProducts,
     username: profile.username || authUser.email || authUser.uid,
     loggedAt: new Date().toISOString()
   };

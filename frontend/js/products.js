@@ -1,4 +1,4 @@
-import { getCurrentSession } from "./auth.js";
+import { ensureCurrentUserProfile, getCurrentSession } from "./auth.js";
 import {
   getProductById,
   getProductByKioscoAndBarcode,
@@ -20,12 +20,13 @@ const syncProductsCallable = httpsCallable(functions, "syncProducts");
 const deleteProductCallable = httpsCallable(functions, "deleteProductByCode");
 
 export async function createProduct(formData) {
-  const session = getCurrentSession();
-  if (!session) {
+  const profileResult = await ensureCurrentUserProfile();
+  if (!profileResult.ok || !profileResult.user) {
     return { ok: false, error: "Sesion expirada. Inicia sesion nuevamente.", requiresLogin: true };
   }
-  if (!isEmployerRole(session.role)) {
-    return { ok: false, error: "Solo el empleador puede crear productos." };
+  const session = profileResult.user;
+  if (!canCreateProducts(session)) {
+    return { ok: false, error: "No tienes permisos para crear productos." };
   }
 
   const barcodeInput = String(formData.get("barcode") || "").trim();
@@ -242,8 +243,8 @@ export async function syncPendingProducts({ force = false } = {}) {
   if (!session) {
     return { ok: false, error: "Sesion expirada. Inicia sesion nuevamente.", requiresLogin: true };
   }
-  if (!isEmployerRole(session.role)) {
-    return { ok: false, error: "Solo el empleador puede sincronizar productos." };
+  if (!canCreateProducts(session)) {
+    return { ok: false, error: "No tienes permisos para sincronizar productos." };
   }
 
   const pending = await getUnsyncedProductsByKiosco(session.tenantId);
@@ -439,6 +440,12 @@ function mapCallableError(error) {
 function isEmployerRole(role) {
   const normalized = String(role || "").trim().toLowerCase();
   return normalized === "empleador" || normalized === "dueno";
+}
+
+function canCreateProducts(session) {
+  if (!session) return false;
+  if (isEmployerRole(session.role)) return true;
+  return session.canCreateProducts === true || session.puedeCrearProductos === true;
 }
 
 async function canUseCloudNow() {

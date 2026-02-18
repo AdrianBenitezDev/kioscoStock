@@ -9,8 +9,9 @@ export function showAppShell(user) {
   dom.sessionEmail.textContent = user.email ? `Email: ${user.email}` : "----@gmail.com";
   const role = String(user.role || "").trim().toLowerCase();
   const isOwner = role === "empleador" || role === "dueno";
-  dom.providerCostGroup.classList.toggle("hidden", !isOwner);
-  dom.providerCostInput.required = isOwner;
+  const canCreateProducts = isOwner || user?.canCreateProducts === true || user?.puedeCrearProductos === true;
+  dom.providerCostGroup.classList.toggle("hidden", !canCreateProducts);
+  dom.providerCostInput.required = canCreateProducts;
   dom.employeeAdminPanel.classList.toggle("hidden", !isOwner);
   dom.configModeBtn.classList.toggle("hidden", !isOwner);
   dom.cashCardCost?.classList.toggle("hidden", !isOwner);
@@ -18,7 +19,9 @@ export function showAppShell(user) {
   dom.cashSummary?.classList.toggle("cash-summary-limited", !isOwner);
   dom.cashSalesProfitCol?.classList.toggle("hidden", !isOwner);
   dom.cashClosuresSection?.classList.toggle("hidden", !isOwner);
-  setMode("add");
+  dom.addModeBtn.disabled = !canCreateProducts;
+  applyAddProductAvailability(canCreateProducts);
+  setMode(canCreateProducts ? "add" : "sell");
 }
 
 export function setMode(mode) {
@@ -288,5 +291,17 @@ function formatTime(isoDate) {
   if (!isoDate) return "--:--";
   const date = new Date(isoDate);
   return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function applyAddProductAvailability(enabled) {
+  const controls = dom.addProductForm?.querySelectorAll("input, select, button") || [];
+  controls.forEach((control) => {
+    control.disabled = !enabled;
+  });
+  if (!enabled) {
+    setProductFeedbackError("No tienes permiso para crear productos.");
+    return;
+  }
+  clearProductFeedback();
 }
 

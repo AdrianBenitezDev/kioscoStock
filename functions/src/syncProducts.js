@@ -1,8 +1,15 @@
 const { HttpsError, onCall, Timestamp, db } = require("./shared/context");
-const { requireEmployerContext } = require("./shared/authz");
+const { requireTenantMemberContext } = require("./shared/authz");
 
 const syncProducts = onCall(async (request) => {
-  const { tenantId } = await requireEmployerContext(request, { requireOwner: true });
+  const { tenantId, role, caller } = await requireTenantMemberContext(request);
+  const canCreateProducts =
+    role === "empleador" ||
+    caller?.canCreateProducts === true ||
+    caller?.puedeCrearProductos === true;
+  if (!canCreateProducts) {
+    throw new HttpsError("permission-denied", "No tienes permisos para sincronizar productos.");
+  }
 
   const products = Array.isArray(request.data?.products) ? request.data.products : [];
   if (products.length === 0) {
