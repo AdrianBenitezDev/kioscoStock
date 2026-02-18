@@ -8,7 +8,7 @@ export function showAppShell(user) {
   dom.sessionInfo.textContent = `${user.displayName} (${user.role})`;
   dom.sessionEmail.textContent = user.email ? `Email: ${user.email}` : "----@gmail.com";
   const role = String(user.role || "").trim().toLowerCase();
-  const isOwner = role === "empleador" || role === "dueno";
+  const isOwner = role === "empleador";
   const canCreateProducts = isOwner || user?.canCreateProducts === true || user?.puedeCrearProductos === true;
   dom.providerCostGroup.classList.toggle("hidden", !canCreateProducts);
   dom.providerCostInput.required = canCreateProducts;

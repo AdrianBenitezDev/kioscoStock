@@ -175,7 +175,6 @@ function setButtonLoading(button, loading) {
 
 function normalizeRole(roleValue) {
   const role = String(roleValue || "").trim().toLowerCase();
-  if (role === "dueno") return "empleador";
   return role;
 }
 

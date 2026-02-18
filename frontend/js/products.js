@@ -439,7 +439,7 @@ function mapCallableError(error) {
 
 function isEmployerRole(role) {
   const normalized = String(role || "").trim().toLowerCase();
-  return normalized === "empleador" || normalized === "dueno";
+  return normalized === "empleador";
 }
 
 function canCreateProducts(session) {

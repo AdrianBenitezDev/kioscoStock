@@ -3,8 +3,9 @@ const { requireTenantMemberContext } = require("./shared/authz");
 
 const syncProducts = onCall(async (request) => {
   const { tenantId, role, caller } = await requireTenantMemberContext(request);
+  const normalizedRole = String(role || caller?.role || "").trim().toLowerCase();
   const canCreateProducts =
-    role === "empleador" ||
+    normalizedRole === "empleador" ||
     caller?.canCreateProducts === true ||
     caller?.puedeCrearProductos === true;
   if (!canCreateProducts) {

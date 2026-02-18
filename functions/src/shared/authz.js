@@ -79,7 +79,7 @@ async function requireEmployerContext(request, { requireOwner = false } = {}) {
       throw new HttpsError("permission-denied", "Tenant no existe.");
     }
     if (tenantDoc.data()?.ownerUid !== uid) {
-      throw new HttpsError("permission-denied", "No eres dueno de este tenant.");
+      throw new HttpsError("permission-denied", "No eres el empleador de este tenant.");
     }
   }
 

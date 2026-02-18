@@ -145,7 +145,7 @@ export async function syncCashClosureToFirestore(closure) {
 }
 
 function mapRoleToFirestore(role) {
-  if (role === "dueno" || role === "empleador") return "empleador";
+  if (role === "empleador") return "empleador";
   return "empleado";
 }
 
