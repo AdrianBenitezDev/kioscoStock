@@ -57,6 +57,7 @@ export const dom = {
   saleDeviceHint: document.getElementById("sale-device-hint"),
   saleTableBody: document.getElementById("sale-table-body"),
   saleTotal: document.getElementById("sale-total"),
+  offlineSyncBanner: document.getElementById("offline-sync-banner"),
   cashScopeLabel: document.getElementById("cash-scope-label"),
   cashPrivacyToggle: document.getElementById("cash-privacy-toggle"),
   cashSalesCount: document.getElementById("cash-sales-count"),

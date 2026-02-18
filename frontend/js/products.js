@@ -11,6 +11,8 @@ import {
 import { PRODUCT_CATEGORIES } from "./config.js";
 import { ensureFirebaseAuth, firebaseApp, firebaseAuth } from "../config.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-functions.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { firestoreDb } from "../config.js";
 
 const SYNC_THRESHOLD = 30;
 const functions = getFunctions(firebaseApp);
@@ -52,7 +54,11 @@ export async function createProduct(formData) {
 
   const hasBarcode = Boolean(barcodeInput);
   const code = hasBarcode ? barcodeInput : `INT-${Date.now()}`;
-  const exists = await getProductByKioscoAndBarcode(session.tenantId, code);
+  let exists = await getProductByKioscoAndBarcode(session.tenantId, code);
+  if (exists?.pendingDelete === true) {
+    await deleteProductById(exists.id);
+    exists = null;
+  }
   if (exists) {
     return { ok: false, error: "Ese codigo de barras ya existe." };
   }
@@ -83,25 +89,15 @@ export async function createProduct(formData) {
   };
 
   await putProduct(product);
-
-  const pending = await getUnsyncedProductsByKiosco(session.tenantId);
-  if (pending.length >= SYNC_THRESHOLD) {
-    const syncResult = await syncPendingProducts({ force: true });
-    if (syncResult.ok) {
-      return {
-        ok: true,
-        message: `Producto guardado. Se sincronizaron ${syncResult.syncedCount} productos pendientes.`
-      };
-    }
-    return {
-      ok: true,
-      message: `Producto guardado en local. Sync pendiente (${pending.length} sin sincronizar).`
-    };
+  const immediateSync = await trySyncProductsNow(session, [normalizeProduct(product)]);
+  if (immediateSync.ok) {
+    return { ok: true, message: "Producto guardado y sincronizado con Firebase." };
   }
 
+  const pending = await getUnsyncedProductsByKiosco(session.tenantId);
   return {
     ok: true,
-    message: `Producto guardado en local. Pendientes de sync: ${pending.length}.`
+    message: `Producto guardado en local por falta de sync online. Pendientes: ${pending.length}.`
   };
 }
 
@@ -110,13 +106,83 @@ export async function listProductsForCurrentKiosco() {
   if (!session) return [];
 
   const products = await getProductsByKiosco(session.tenantId);
-  return products.map(normalizeProduct).sort((a, b) => {
+  return products
+    .map(normalizeProduct)
+    .filter((product) => product.pendingDelete !== true)
+    .sort((a, b) => {
     const categoryCmp = String(a.category || "").localeCompare(String(b.category || ""));
     if (categoryCmp !== 0) return categoryCmp;
     const stockCmp = Number(a.stock || 0) - Number(b.stock || 0);
     if (stockCmp !== 0) return stockCmp;
     return String(a.name || "").localeCompare(String(b.name || ""));
-  });
+    });
+}
+
+export async function syncProductsFromCloudForCurrentKiosco() {
+  const session = getCurrentSession();
+  if (!session) return { ok: false, error: "Sesion expirada." };
+
+  await ensureFirebaseAuth();
+  if (!firebaseAuth.currentUser || !navigator.onLine) {
+    return { ok: true, syncedCount: 0, skipped: true };
+  }
+
+  try {
+    const ref = collection(firestoreDb, "tenants", session.tenantId, "productos");
+    const snap = await getDocs(ref);
+    const remoteRows = snap.docs.map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() || {}) }));
+    if (!remoteRows.length) {
+      return { ok: true, syncedCount: 0 };
+    }
+
+    const localRows = await getProductsByKiosco(session.tenantId);
+    const localByCode = new Map(
+      localRows.map((row) => [String(row?.codigo || row?.barcode || "").trim(), row]).filter(([code]) => Boolean(code))
+    );
+
+    let syncedCount = 0;
+    const now = Date.now();
+    for (const remote of remoteRows) {
+      const code = String(remote?.codigo || remote?.barcode || remote?.id || "").trim();
+      if (!code) continue;
+
+      const existing = localByCode.get(code);
+      const next = normalizeProduct({
+        ...(existing || {}),
+        id: String(existing?.id || remote.id || crypto.randomUUID()),
+        tenantId: session.tenantId,
+        kioscoId: session.tenantId,
+        codigo: code,
+        barcode: code,
+        nombre: String(remote?.nombre || remote?.name || existing?.nombre || existing?.name || "").trim(),
+        name: String(remote?.nombre || remote?.name || existing?.nombre || existing?.name || "").trim(),
+        categoria: String(remote?.categoria || remote?.category || existing?.categoria || existing?.category || "").trim(),
+        category: String(remote?.categoria || remote?.category || existing?.categoria || existing?.category || "").trim(),
+        precioVenta: Number(remote?.precioVenta ?? remote?.price ?? existing?.precioVenta ?? existing?.price ?? 0),
+        price: Number(remote?.precioVenta ?? remote?.price ?? existing?.precioVenta ?? existing?.price ?? 0),
+        precioCompra: Number(
+          remote?.precioCompra ?? remote?.costoProveedor ?? remote?.providerCost ?? existing?.precioCompra ?? existing?.providerCost ?? 0
+        ),
+        providerCost: Number(
+          remote?.precioCompra ?? remote?.costoProveedor ?? remote?.providerCost ?? existing?.precioCompra ?? existing?.providerCost ?? 0
+        ),
+        stock: Number(remote?.stock ?? existing?.stock ?? 0),
+        tieneCodigoBarras: true,
+        synced: true,
+        syncedAt: now,
+        updatedAt: now,
+        createdAt: Number(existing?.createdAt || now)
+      });
+
+      applyNormalizedToStoredProduct(next, next);
+      await putProduct(next);
+      syncedCount += 1;
+    }
+
+    return { ok: true, syncedCount };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error || "No se pudo traer productos desde Firebase.") };
+  }
 }
 
 export async function findProductByBarcodeForCurrentKiosco(barcodeInput) {
@@ -127,6 +193,7 @@ export async function findProductByBarcodeForCurrentKiosco(barcodeInput) {
   if (!barcode) return null;
 
   const product = await getProductByKioscoAndBarcode(session.tenantId, barcode);
+  if (product?.pendingDelete === true) return null;
   return product ? normalizeProduct(product) : null;
 }
 
@@ -158,13 +225,16 @@ export async function updateProductStock(productId, newStockInput) {
   applyNormalizedToStoredProduct(product, normalized);
 
   await putProduct(product);
-
-  const pending = await getUnsyncedProductsByKiosco(session.tenantId);
-  if (pending.length >= SYNC_THRESHOLD) {
-    await syncPendingProducts({ force: true });
+  const immediateSync = await trySyncProductsNow(session, [normalizeProduct(product)]);
+  if (immediateSync.ok) {
+    return { ok: true, message: `Stock actualizado y sincronizado para ${normalized.name}.` };
   }
 
-  return { ok: true, message: `Stock actualizado para ${normalized.name}.` };
+  const pending = await getUnsyncedProductsByKiosco(session.tenantId);
+  return {
+    ok: true,
+    message: `Stock actualizado en local para ${normalized.name}. Pendientes de sync: ${pending.length}.`
+  };
 }
 
 export async function syncPendingProducts({ force = false } = {}) {
@@ -191,11 +261,28 @@ export async function syncPendingProducts({ force = false } = {}) {
   }
 
   await ensureFirebaseAuth();
-  if (!firebaseAuth.currentUser) {
+  if (!firebaseAuth.currentUser || !navigator.onLine) {
     return { ok: false, error: "No hay sesion Firebase valida para sincronizar." };
   }
 
-  const payload = pending.map((product) => {
+  const pendingDeletes = pending.filter((product) => product?.pendingDelete === true);
+  const pendingUpserts = pending.filter((product) => product?.pendingDelete !== true);
+  let syncedDeletes = 0;
+  let syncedUpserts = 0;
+  let lastError = "";
+
+  for (const product of pendingDeletes) {
+    try {
+      const normalized = normalizeProduct(product);
+      await deleteProductCallable({ codigo: normalized.codigo });
+      await deleteProductById(product.id);
+      syncedDeletes += 1;
+    } catch (error) {
+      lastError = mapCallableError(error);
+    }
+  }
+
+  const payload = pendingUpserts.map((product) => {
     const normalized = normalizeProduct(product);
     return {
       codigo: normalized.codigo,
@@ -211,20 +298,27 @@ export async function syncPendingProducts({ force = false } = {}) {
     };
   });
 
-  try {
-    const response = await syncProductsCallable({ products: payload });
-    const syncedIds = Array.isArray(response?.data?.syncedIds) ? response.data.syncedIds : [];
-    const updatedCount = await markProductsAsSyncedByCodes(session.tenantId, syncedIds);
-    const pendingCount = Math.max(0, pending.length - updatedCount);
-    return {
-      ok: true,
-      syncedCount: updatedCount,
-      pendingCount,
-      message: `Sincronizacion completa. Productos sincronizados: ${updatedCount}.`
-    };
-  } catch (error) {
-    return { ok: false, error: mapCallableError(error) };
+  if (payload.length > 0) {
+    try {
+      const response = await syncProductsCallable({ products: payload });
+      const syncedIds = Array.isArray(response?.data?.syncedIds) ? response.data.syncedIds : [];
+      syncedUpserts = await markProductsAsSyncedByCodes(session.tenantId, syncedIds);
+    } catch (error) {
+      lastError = mapCallableError(error);
+    }
   }
+
+  const syncedCount = syncedDeletes + syncedUpserts;
+  const pendingCount = (await getUnsyncedProductsByKiosco(session.tenantId)).length;
+  if (syncedCount === 0 && lastError) {
+    return { ok: false, error: lastError };
+  }
+  return {
+    ok: true,
+    syncedCount,
+    pendingCount,
+    message: `Sincronizacion productos: ${syncedUpserts} actualizados, ${syncedDeletes} eliminados.`
+  };
 }
 
 export async function getPendingProductsCountForCurrentKiosco() {
@@ -249,27 +343,28 @@ export async function deleteProduct(productId) {
   }
 
   const normalized = normalizeProduct(stored);
-  await deleteProductById(productId);
-
-  await ensureFirebaseAuth();
-  if (!firebaseAuth.currentUser) {
-    return {
-      ok: false,
-      localDeleted: true,
-      error: "Producto eliminado en local. No hay sesion Firebase para borrarlo en la nube."
-    };
+  const onlineReady = await canUseCloudNow();
+  if (onlineReady) {
+    try {
+      await deleteProductCallable({ codigo: normalized.codigo });
+      await deleteProductById(productId);
+      return { ok: true, message: `Producto ${normalized.name} eliminado y sincronizado.` };
+    } catch (error) {
+      await markProductPendingDelete(stored, session.userId);
+      return {
+        ok: true,
+        localDeleted: true,
+        message: `Producto ocultado en local. Pendiente eliminar en Firebase: ${mapCallableError(error)}`
+      };
+    }
   }
 
-  try {
-    await deleteProductCallable({ codigo: normalized.codigo });
-    return { ok: true, message: `Producto ${normalized.name} eliminado.` };
-  } catch (error) {
-    return {
-      ok: false,
-      localDeleted: true,
-      error: `Producto eliminado en local, pero no se pudo eliminar en Firebase: ${mapCallableError(error)}`
-    };
-  }
+  await markProductPendingDelete(stored, session.userId);
+  return {
+    ok: true,
+    localDeleted: true,
+    message: "Producto ocultado en local sin conexion. Se eliminara en Firebase al reconectar."
+  };
 }
 
 function normalizeProduct(product) {
@@ -291,6 +386,7 @@ function normalizeProduct(product) {
     tieneCodigoBarras: Boolean(product?.tieneCodigoBarras ?? !String(code).startsWith("INT-")),
     tenantId: String(product?.tenantId || product?.kioscoId || "").trim(),
     synced: product?.synced === true,
+    pendingDelete: product?.pendingDelete === true,
     createdAt: Number(product?.createdAt || Date.now()),
     barcode: code,
     name,
@@ -311,6 +407,7 @@ function applyNormalizedToStoredProduct(target, normalized) {
   target.tieneCodigoBarras = normalized.tieneCodigoBarras;
   target.tenantId = normalized.tenantId;
   target.synced = normalized.synced;
+  target.pendingDelete = normalized.pendingDelete === true;
   target.createdAt = normalized.createdAt;
   target.updatedAt = normalized.updatedAt || Date.now();
   target.updatedBy = normalized.updatedBy || null;
@@ -342,4 +439,49 @@ function mapCallableError(error) {
 function isEmployerRole(role) {
   const normalized = String(role || "").trim().toLowerCase();
   return normalized === "empleador" || normalized === "dueno";
+}
+
+async function canUseCloudNow() {
+  await ensureFirebaseAuth();
+  return Boolean(firebaseAuth.currentUser) && navigator.onLine;
+}
+
+async function markProductPendingDelete(stored, userId) {
+  const next = normalizeProduct(stored);
+  next.pendingDelete = true;
+  next.synced = false;
+  next.updatedBy = userId || null;
+  next.updatedAt = Date.now();
+  applyNormalizedToStoredProduct(stored, next);
+  await putProduct(stored);
+}
+
+async function trySyncProductsNow(session, products) {
+  const onlineReady = await canUseCloudNow();
+  if (!onlineReady) return { ok: false, reason: "offline" };
+
+  const payload = (products || []).map((product) => {
+    const normalized = normalizeProduct(product);
+    return {
+      codigo: normalized.codigo,
+      nombre: normalized.nombre,
+      precioVenta: Number(normalized.precioVenta || 0),
+      precioCompra: Number(normalized.precioCompra || 0),
+      categoria: normalized.categoria || null,
+      stock: Number(normalized.stock || 0),
+      tieneCodigoBarras: Boolean(normalized.tieneCodigoBarras),
+      tenantId: session.tenantId,
+      synced: false,
+      createdAt: Number(normalized.createdAt || Date.now())
+    };
+  });
+
+  try {
+    const response = await syncProductsCallable({ products: payload });
+    const syncedIds = Array.isArray(response?.data?.syncedIds) ? response.data.syncedIds : [];
+    await markProductsAsSyncedByCodes(session.tenantId, syncedIds);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: mapCallableError(error) };
+  }
 }

@@ -99,6 +99,39 @@ body {
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.42);
 }
 
+.offline-sync-banner {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
+}
+
+.offline-sync-banner.is-offline {
+  background: #991b1b;
+  border-color: #fca5a5;
+  color: #ffffff;
+}
+
+.offline-sync-banner.is-syncing {
+  background: #0f766e;
+  border-color: #99f6e4;
+  color: #ffffff;
+}
+
+.offline-sync-banner.is-error {
+  background: #b45309;
+  border-color: #fcd34d;
+  color: #ffffff;
+}
+
 .container {
   width: min(96%, 1160px);
   padding: 2rem;
@@ -721,6 +754,13 @@ button:disabled {
 
   .top-banner-subtitle {
     font-size: 0.74rem;
+  }
+
+  .offline-sync-banner {
+    top: 58px;
+    width: calc(100% - 1rem);
+    max-width: 460px;
+    border-radius: 12px;
   }
 
   .container {

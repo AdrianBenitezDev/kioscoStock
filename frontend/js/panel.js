@@ -13,13 +13,14 @@ import {
   createProduct,
   deleteProduct,
   findProductByBarcodeForCurrentKiosco,
+  syncProductsFromCloudForCurrentKiosco,
   syncPendingProducts,
   listProductsForCurrentKiosco,
   updateProductStock
 } from "./products.js";
 import { isScannerReady, isScannerRunning, startScanner, stopScanner } from "./scanner.js";
 import { createKeyboardScanner } from "./keyboard_scanner.js";
-import { chargeSale } from "./sales.js";
+import { chargeSale, syncPendingSales } from "./sales.js";
 import { closeTodayShift, getCashSnapshotForToday } from "./cash.js";
 import {
   clearAddScanFeedback,
@@ -73,6 +74,7 @@ const ICON_EYE_OFF_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-3.17 4.35"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
 let cashSensitiveMasked = true;
 let latestCashSnapshot = null;
+let offlineSyncInProgress = false;
 
 init().catch((error) => {
   console.error(error);
@@ -101,6 +103,7 @@ async function init() {
   await refreshCashPanel();
   await refreshEmployeesPanel();
   wireEvents();
+  initializeOfflineSyncBanner();
 }
 
 function wireEvents() {
@@ -146,7 +149,9 @@ function wireEvents() {
   dom.refreshCashBtn.addEventListener("click", refreshCashPanel);
   dom.cashPrivacyToggle?.addEventListener("click", handleToggleCashPrivacy);
   dom.employeeListTableBody?.addEventListener("click", handleDeleteEmployeeClick);
-  window.addEventListener("online", handleOnlineProductsSync);
+  window.addEventListener("online", handleOnlineReconnection);
+  window.addEventListener("offline", handleOfflineDetected);
+  dom.offlineSyncBanner?.addEventListener("click", handleOfflineBannerClick);
 }
 
 async function handleLogout() {
@@ -190,11 +195,89 @@ async function handleManualProductsSync() {
   await refreshStock();
 }
 
-async function handleOnlineProductsSync() {
-  const result = await syncPendingProducts({ force: true });
-  if (!result.ok || result.syncedCount <= 0) return;
-  setProductFeedbackSuccess(result.message);
-  await refreshStock();
+async function handleOnlineReconnection() {
+  await runOfflinePendingSync();
+}
+
+function handleOfflineDetected() {
+  setOfflineSyncBannerState("offline");
+}
+
+async function handleOfflineBannerClick() {
+  if (!navigator.onLine) {
+    setOfflineSyncBannerState("offline");
+    return;
+  }
+  await runOfflinePendingSync();
+}
+
+function initializeOfflineSyncBanner() {
+  if (!dom.offlineSyncBanner) return;
+  if (navigator.onLine) {
+    hideOfflineSyncBanner();
+    return;
+  }
+  setOfflineSyncBannerState("offline");
+}
+
+async function runOfflinePendingSync() {
+  if (offlineSyncInProgress) return;
+  if (!dom.offlineSyncBanner) return;
+
+  if (!navigator.onLine) {
+    setOfflineSyncBannerState("offline");
+    return;
+  }
+
+  offlineSyncInProgress = true;
+  setOfflineSyncBannerState("syncing");
+
+  let shouldRefreshStock = false;
+  let shouldRefreshCash = false;
+  let syncError = "";
+
+  try {
+    if (isEmployerRole(currentUser?.role)) {
+      const productsSync = await syncPendingProducts({ force: true });
+      if (!productsSync.ok) {
+        syncError = productsSync.error || "No se pudieron sincronizar productos pendientes.";
+      } else {
+        if (productsSync.syncedCount > 0) {
+          setProductFeedbackSuccess(productsSync.message);
+          shouldRefreshStock = true;
+        }
+      }
+    } else {
+      const cloudPull = await syncProductsFromCloudForCurrentKiosco();
+      if (!cloudPull.ok) {
+        syncError = cloudPull.error || "No se pudieron descargar productos desde Firebase.";
+      } else if (cloudPull.syncedCount > 0) {
+        shouldRefreshStock = true;
+      }
+    }
+
+    const salesSync = await syncPendingSales();
+    if (!salesSync.ok) {
+      syncError = syncError || salesSync.error || "No se pudieron sincronizar ventas pendientes.";
+    } else if (salesSync.syncedCount > 0) {
+      shouldRefreshCash = true;
+    }
+
+    if (syncError) {
+      setOfflineSyncBannerState("error", `Online con pendientes. Click para reintentar. ${syncError}`);
+      return;
+    }
+
+    if (shouldRefreshStock) {
+      await refreshStock();
+    }
+    if (shouldRefreshCash) {
+      await refreshCashPanel();
+    }
+    hideOfflineSyncBanner();
+  } finally {
+    offlineSyncInProgress = false;
+  }
 }
 
 async function handleCreateEmployeeSubmit(event) {
@@ -325,6 +408,9 @@ async function handleBarcodeEnterOnAddProduct(event) {
 }
 
 async function refreshStock() {
+  if (!isEmployerRole(currentUser?.role)) {
+    await syncProductsFromCloudForCurrentKiosco();
+  }
   allStockProducts = await listProductsForCurrentKiosco();
   applyStockFilters();
 }
@@ -600,6 +686,9 @@ async function handleDetectedStockCode(barcode) {
 async function refreshCashPanel() {
   clearCashFeedback();
   dom.closeShiftBtn.disabled = false;
+  if (navigator.onLine) {
+    await syncPendingSales();
+  }
   const snapshot = await getCashSnapshotForToday();
   if (!snapshot.ok) {
     if (snapshot.requiresLogin) {
@@ -993,6 +1082,35 @@ function clearSaleSuggestions() {
   if (!dom.saleSearchSuggestions) return;
   dom.saleSearchSuggestions.innerHTML = "";
   dom.saleSearchSuggestions.classList.add("hidden");
+}
+
+function setOfflineSyncBannerState(state, customMessage = "") {
+  if (!dom.offlineSyncBanner) return;
+  dom.offlineSyncBanner.classList.remove("hidden", "is-offline", "is-syncing", "is-error");
+
+  if (state === "syncing") {
+    dom.offlineSyncBanner.classList.add("is-syncing");
+    dom.offlineSyncBanner.textContent = customMessage || "Reconectando y sincronizando pendientes...";
+    dom.offlineSyncBanner.disabled = true;
+    return;
+  }
+
+  if (state === "error") {
+    dom.offlineSyncBanner.classList.add("is-error");
+    dom.offlineSyncBanner.textContent = customMessage || "No se pudo sincronizar. Click para reintentar.";
+    dom.offlineSyncBanner.disabled = false;
+    return;
+  }
+
+  dom.offlineSyncBanner.classList.add("is-offline");
+  dom.offlineSyncBanner.textContent = customMessage || "Sin conexion. Click para reintentar sync.";
+  dom.offlineSyncBanner.disabled = false;
+}
+
+function hideOfflineSyncBanner() {
+  if (!dom.offlineSyncBanner) return;
+  dom.offlineSyncBanner.classList.add("hidden");
+  dom.offlineSyncBanner.disabled = true;
 }
 
 async function addFromSaleSearch(showNoMatchMessage = false) {
