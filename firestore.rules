@@ -75,6 +75,11 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /tenants/{tenantDocId}/productos/{docId} {
+      allow read: if isAuthenticated() && tenantId() != null && tenantDocId == tenantId();
+      allow create, update, delete: if false;
+    }
+
     match /productos/{docId} {
       allow read: if isTenantMemberByResource();
       allow create: if isTenantMemberByData();
