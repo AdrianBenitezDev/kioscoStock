@@ -1,4 +1,5 @@
 import { openDatabase } from "./db.js";
+import { reload } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   ensureCurrentUserProfile,
   signInWithCredentials,
@@ -26,9 +27,15 @@ async function init() {
 
   const result = await ensureCurrentUserProfile();
   if (result.ok) {
-    if (result.user?.correoVerificado !== true && normalizeRole(result.user?.tipo || result.user?.role) === "empleador") {
+    const role = normalizeRole(result.user?.tipo || result.user?.role);
+    if (result.user?.correoVerificado !== true && role === "empleador") {
       const email = encodeURIComponent(String(result.user?.email || firebaseAuth.currentUser?.email || ""));
       window.location.href = `verificar-correo.html?email=${email}`;
+      return;
+    }
+    if (result.user?.correoVerificado !== true && role === "empleado") {
+      await signOutUser();
+      loginFeedback.textContent = "Debes verificar tu correo antes de ingresar.";
       return;
     }
     redirectToPanel();
@@ -144,7 +151,10 @@ async function handleEmployeeLogin(event) {
       await signOutUser();
       return;
     }
-    if (firebaseAuth.currentUser?.emailVerified !== true) {
+    if (firebaseAuth.currentUser) {
+      await reload(firebaseAuth.currentUser);
+    }
+    if (firebaseAuth.currentUser?.emailVerified !== true || profileResult.user.correoVerificado !== true) {
       loginFeedback.textContent = "Debes verificar tu correo antes de ingresar.";
       await signOutUser();
       return;

@@ -1,9 +1,16 @@
 const crypto = require("crypto");
 const { onRequest, adminAuth, db, Timestamp } = require("./shared/context");
 const TOKEN_EXPIRY_HOURS = 24;
+const ALLOWED_ORIGINS = new Set([
+  "https://admin.stockfacil.com.ar",
+  "https://stockfacil.com.ar"
+]);
 
 const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] },async (req, res) => {
-  setCors(res);
+  if (!setCors(req, res)) {
+    res.status(403).json({ ok: false, error: "Origen no permitido." });
+    return;
+  }
   if (req.method === "OPTIONS") {
     res.status(204).send("");
     return;
@@ -74,10 +81,18 @@ const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] }
   }
 });
 
-function setCors(res) {
-  res.set("Access-Control-Allow-Origin", "*");
+function setCors(req, res) {
+  const origin = String(req.headers?.origin || "").trim();
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
+    return false;
+  }
+  if (origin) {
+    res.set("Access-Control-Allow-Origin", origin);
+  }
+  res.set("Vary", "Origin");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return true;
 }
 
 function getBearerToken(req) {

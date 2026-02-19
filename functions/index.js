@@ -11,6 +11,7 @@ const { markEmployerEmailVerified } = require("./src/markEmployerEmailVerified")
 const { sendEmployerVerificationEmail } = require("./src/sendEmployerVerificationEmail");
 const {seedPlanes} = require("./src/seedPlanes");
 const { updateEmpleadoProductoPermission } = require("./src/updateEmpleadoProductoPermission");
+const { adminGetUsersOverview } = require("./src/adminGetUsersOverview");
 
 exports.seedPlanes = seedPlanes;
 
@@ -26,3 +27,4 @@ exports.registerEmployerProfile = registerEmployerProfile;
 exports.markEmployerEmailVerified = markEmployerEmailVerified;
 exports.sendEmployerVerificationEmail = sendEmployerVerificationEmail;
 exports.updateEmpleadoProductoPermission = updateEmpleadoProductoPermission;
+exports.adminGetUsersOverview = adminGetUsersOverview;
