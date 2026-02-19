@@ -24,6 +24,58 @@ const markEmployerEmailVerified = onRequest(async (req, res) => {
       res.status(401).json({ ok: false, error: "Token invalido." });
       return;
     }
+    const emailVerified = decoded.email_verified === true;
+
+    // Sync rapido: si el token ya confirma correo verificado, persiste el estado real
+    // tanto para empleador como para empleado.
+    if (emailVerified) {
+      const now = Timestamp.now();
+      const [userSnap, employeeSnap] = await Promise.all([
+        db.collection("usuarios").doc(uid).get(),
+        db.collection("empleados").doc(uid).get()
+      ]);
+
+      const batch = db.batch();
+      let touched = 0;
+
+      if (userSnap.exists) {
+        const userRef = userSnap.ref;
+        batch.set(
+          userRef,
+          {
+            correoVerificado: true,
+            tokenCorreoVerificacion: null,
+            tokenCorreoVerificacionCreatedAt: null,
+            tokenCorreoVerificacionExpiresAt: null,
+            updatedAt: now
+          },
+          { merge: true }
+        );
+        touched += 1;
+      }
+
+      if (employeeSnap.exists) {
+        batch.set(
+          employeeSnap.ref,
+          {
+            emailVerified: true,
+            correoVerificado: true,
+            updatedAt: now
+          },
+          { merge: true }
+        );
+        touched += 1;
+      }
+
+      if (touched === 0) {
+        res.status(404).json({ ok: false, error: "No existe perfil de usuario." });
+        return;
+      }
+
+      await batch.commit();
+      res.status(200).json({ ok: true, correoVerificado: true, emailVerified: true });
+      return;
+    }
 
     const userRef = db.collection("usuarios").doc(uid);
     const userSnap = await userRef.get();

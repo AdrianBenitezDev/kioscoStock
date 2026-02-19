@@ -212,6 +212,13 @@ export async function ensureCurrentUserProfile() {
       Object.assign(profile, refreshedSnap.data() || {});
     }
   }
+  if (role === "empleado" && profile.emailVerified !== true && authUser.emailVerified === true) {
+    await syncVerifiedEmailFlag();
+    const refreshedSnap = await getDoc(profileRef);
+    if (refreshedSnap.exists()) {
+      Object.assign(profile, refreshedSnap.data() || {});
+    }
+  }
 
   const canCreateProducts =
     role === "empleador"

@@ -379,7 +379,7 @@ async function refreshEmployeesPanel() {
       .map((employee) => {
         const name = escapeHtml(employee.displayName || employee.username || employee.uid || "-");
         const email = escapeHtml(employee.email || "-");
-        const verified = employee.emailVerified === true ? "Si" : "No";
+        const verified = employee.emailVerified === true || employee.correoVerificado === true ? "Si" : "No";
         const canCreateProducts = employee.puedeCrearProductos === true;
         const created = escapeHtml(formatDateForTable(employee.createdAt));
         const uid = escapeHtml(employee.uid || employee.id || "");
