@@ -55,6 +55,13 @@ const adminGetUsersOverview = onRequest(async (req, res) => {
       rows.push({
         uid: String(employer.uid || "").trim(),
         tenantId,
+        nombreNegocio:
+          tenantSummary.nombreNegocio || String(employer.nombreKiosco || employer.negocio || "-").trim() || "-",
+        direccionNegocio:
+          tenantSummary.direccionNegocio ||
+          buildAddressFromSource(employer) ||
+          buildAddressFromSource(tenantSummary) ||
+          "-",
         nombre:
           String(
             employer.displayName ||
@@ -115,6 +122,9 @@ async function getTenantSummaryCached(tenantId, cache) {
   const tenant = tenantSnap.exists ? tenantSnap.data() || {} : {};
   const summary = {
     planActual: String(tenant.plan || tenant.planId || tenant.planActual || "-").trim() || "-",
+    nombreNegocio:
+      String(tenant.nombreKiosco || tenant.negocio || tenant.nombreComercio || tenant.nombre || "-").trim() || "-",
+    direccionNegocio: buildAddressFromSource(tenant) || "-",
     fechaPago: toIsoString(
       tenant.fechaPago ||
         tenant.proximoPago ||
@@ -152,10 +162,22 @@ async function loadLastAccessForUser(uid, tenantId) {
 function buildEmptyTenantSummary() {
   return {
     planActual: "-",
+    nombreNegocio: "-",
+    direccionNegocio: "-",
     fechaPago: null,
     cantidadEmpleados: 0,
     cantidadProductos: 0
   };
+}
+
+function buildAddressFromSource(source) {
+  const domicilio = String(source?.domicilio || source?.direccion || source?.address || "").trim();
+  const localidad = String(source?.localidad || source?.ciudad || source?.city || "").trim();
+  const distrito = String(source?.distrito || source?.municipio || "").trim();
+  const provincia = String(source?.provinciaEstado || source?.provincia || source?.state || "").trim();
+  const pais = String(source?.pais || source?.country || "").trim();
+
+  return [domicilio, localidad, distrito, provincia, pais].filter(Boolean).join(", ");
 }
 
 function toIsoString(value) {

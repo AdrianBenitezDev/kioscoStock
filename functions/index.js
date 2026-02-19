@@ -12,6 +12,7 @@ const { sendEmployerVerificationEmail } = require("./src/sendEmployerVerificatio
 const {seedPlanes} = require("./src/seedPlanes");
 const { updateEmpleadoProductoPermission } = require("./src/updateEmpleadoProductoPermission");
 const { adminGetUsersOverview } = require("./src/adminGetUsersOverview");
+const { adminManagePlans } = require("./src/adminManagePlans");
 
 exports.seedPlanes = seedPlanes;
 
@@ -28,3 +29,4 @@ exports.markEmployerEmailVerified = markEmployerEmailVerified;
 exports.sendEmployerVerificationEmail = sendEmployerVerificationEmail;
 exports.updateEmpleadoProductoPermission = updateEmpleadoProductoPermission;
 exports.adminGetUsersOverview = adminGetUsersOverview;
+exports.adminManagePlans = adminManagePlans;
