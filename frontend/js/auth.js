@@ -263,7 +263,16 @@ async function resolveUserProfile(uid) {
   }
 
   const employeeRef = doc(firestoreDb, FIRESTORE_COLLECTIONS.empleados, uid);
-  const employeeSnap = await getDoc(employeeRef);
+  let employeeSnap = null;
+  try {
+    employeeSnap = await getDoc(employeeRef);
+  } catch (error) {
+    const code = String(error?.code || "");
+    if (code.includes("permission-denied")) {
+      return null;
+    }
+    throw error;
+  }
   if (employeeSnap.exists()) {
     return { profile: employeeSnap.data() || {}, ref: employeeRef };
   }
