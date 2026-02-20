@@ -3,7 +3,8 @@ const { onRequest, adminAuth, db, Timestamp } = require("./shared/context");
 const ADMIN_EMAIL = "artbenitezdev@gmail.com";
 const ALLOWED_ORIGINS = new Set([
   "https://admin.stockfacil.com.ar",
-  "https://stockfacil.com.ar"
+  "https://stockfacil.com.ar",
+  "https://www.stockfacil.com.ar"
 ]);
 
 const adminManageAccounts = onRequest(async (req, res) => {

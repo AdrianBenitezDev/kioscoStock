@@ -3,7 +3,8 @@ const { onRequest, adminAuth, db, Timestamp } = require("./shared/context");
 const TOKEN_EXPIRY_HOURS = 24;
 const ALLOWED_ORIGINS = new Set([
   "https://admin.stockfacil.com.ar",
-  "https://stockfacil.com.ar"
+  "https://stockfacil.com.ar",
+  "https://www.stockfacil.com.ar"
 ]);
 
 const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] },async (req, res) => {

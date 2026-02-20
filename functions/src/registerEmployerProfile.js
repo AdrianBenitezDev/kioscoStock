@@ -1,7 +1,8 @@
 const { onRequest, Timestamp, adminAuth, db } = require("./shared/context");
 const ALLOWED_ORIGINS = new Set([
   "https://admin.stockfacil.com.ar",
-  "https://stockfacil.com.ar"
+  "https://stockfacil.com.ar",
+  "https://www.stockfacil.com.ar"
 ]);
 
 const registerEmployerProfile = onRequest(async (req, res) => {
