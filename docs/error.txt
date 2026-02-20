@@ -1,0 +1,7 @@
+Failed to load resource: the server responded with a status of 400 ()
+login.js:138  FirebaseError: Firebase: Invalid Idp Response: the Google id_token is not allowed to be used with this application. Its audience (OAuth 2.0 client ID) is 501223538912-e0sqffnmsa9kfgla74qlo108j17kv08s.apps.googleusercontent.com, which is not authorized to be used in the project with project_number: 997147264141. (auth/invalid-credential).
+    at _errorWithCustomMessage (assert.ts:105:17)
+    at _performFetchWithErrorHandling (index.ts:222:5)
+    at async _performSignInRequest (index.ts:247:7)
+    at async _signInWithCredential (credential.ts:44:26)
+    at async HTMLButtonElement.loginGoogleDesktop (login.js:102:7)

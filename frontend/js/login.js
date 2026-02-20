@@ -1,5 +1,10 @@
 import { openDatabase } from "./db.js";
-import { reload } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import {
+  GoogleAuthProvider,
+  reload,
+  signInWithCredential,
+  signInWithRedirect
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   ensureCurrentUserProfile,
   signInWithCredentials,
@@ -43,7 +48,7 @@ async function init() {
   }
 
   registerBtn?.addEventListener("click", handleRegisterBusinessStart);
-  employerBtn?.addEventListener("click", handleEmployerGoogleLogin);
+  employerBtn?.addEventListener("click", loginGoogleDesktop);
   employeeForm?.addEventListener("submit", handleEmployeeLogin);
 }
 
@@ -78,12 +83,30 @@ async function handleRegisterBusinessStart() {
   }
 }
 
-async function handleEmployerGoogleLogin() {
+
+
+
+
+async function loginGoogleDesktop() {
   setUiDisabled(true);
   setButtonLoading(employerBtn, true);
   loginFeedback.textContent = "";
   try {
-    await signInWithGoogle();
+    const invoke = window.__TAURI__?.core?.invoke || window.__TAURI_INTERNALS__?.invoke;
+    if (typeof invoke === "function") {
+      const idToken = await invoke("google_oauth");
+      if (!idToken) {
+        throw new Error("No se recibio idToken de Google OAuth.");
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(firebaseAuth, credential);
+    } else {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      await signInWithRedirect(firebaseAuth, provider);
+      return;
+    }
+
     const profileResult = await ensureCurrentUserProfile();
     if (!profileResult.ok || !profileResult.user) {
       const errorMsg = String(profileResult.error || "");
@@ -119,6 +142,12 @@ async function handleEmployerGoogleLogin() {
     setUiDisabled(false);
   }
 }
+
+
+
+
+
+
 
 async function handleEmployeeLogin(event) {
   event.preventDefault();
@@ -191,3 +220,5 @@ function normalizeRole(roleValue) {
 function redirectToPanel() {
   window.location.href = "panel.html";
 }
+
+

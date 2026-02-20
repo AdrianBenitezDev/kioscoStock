@@ -1,0 +1,89 @@
+﻿<!doctype html>
+<html lang="es">
+
+<body>
+
+  <header class="top-banner">
+    <div class="top-banner-inner">
+      <strong class="top-banner-title top-banner-brand">
+        <span class="btn-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 17l9 4 9-4"/><path d="M3 12l9 4 9-4"/></svg>
+        </span>
+        <span>stockfacil.com.ar</span>
+      </strong>
+      <span class="top-banner-subtitle">Gestion de stock y ventas</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h1>StockFacil</h1>
+      <p class="subtitle">Acceso principal</p>
+      <div class="scan-actions">
+        <button id="register-business-btn" type="button" class="btn-with-icon">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          </span>
+          <span>Registrar Negocio</span>
+        </button>
+        <button id="login-employer-btn" type="button" class="mode-btn-secondary btn-with-icon">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          </span>
+          <span>Acceder Empleador</span>
+        </button>
+      </div>
+      <p class="subtitle">El empleador accede con cuenta Google (sin contrasena).</p>
+
+      <h3>Acceder Empleado</h3>
+      <form id="employee-login-form" autocomplete="off">
+        <label for="employee-email">Usuario / Email</label>
+        <input id="employee-email" type="email" required>
+        <label for="employee-password">Contrasena</label>
+        <input id="employee-password" type="password" minlength="6" required>
+        <button id="employee-login-btn" type="submit" class="mode-btn-secondary btn-with-icon">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+          </span>
+          <span>Ingresar como empleado</span>
+        </button>
+      </form>
+
+      <p id="login-feedback" class="feedback" aria-live="polite"></p>
+    </section>
+
+    <section class="panel">
+      <h3><span class="icon">&#128736;</span> Funcionalidades de StockFacil</h3>
+      <p class="subtitle">Herramienta pensada para control diario de kioscos.</p>
+
+      <div class="feature-list">
+        <p class="feature-item"><span class="feature-icon">&#9989; &#128230;</span> <strong>AGREGAR NUEVO PRODUCTO:</strong> alta de productos con codigo, precio, stock, categoria y costo de proveedor.</p>
+        <p class="feature-item"><span class="feature-icon">&#9989; &#128722;</span> <strong>VENTA:</strong> carga de productos por lector USB o camara, calculo automatico del total y cobro.</p>
+        <p class="feature-item"><span class="feature-icon">&#9989; &#127991;</span> <strong>STOCK:</strong> busqueda rapida, filtro por categoria, deteccion visual de stock bajo y ajuste de reposicion.</p>
+        <p class="feature-item"><span class="feature-icon">&#9989; &#128181;</span> <strong>CAJA:</strong> resumen diario, cierre de turno, total a entregar y ganancia del dia.</p>
+      </div>
+
+      <h3><span class="icon">&#128200;</span> Que aporta al negocio</h3>
+      <div class="feature-list">
+        <p class="feature-item"><span class="feature-icon">&#9989; &#127919;</span> Reduce errores de caja y de stock por carga manual.</p>
+        <p class="feature-item"><span class="feature-icon">&#9989; &#9889;</span> Acelera la atencion al cliente en horas pico.</p>
+        <p class="feature-item"><span class="feature-icon">&#9989; &#128196;</span> Permite decidir reposicion con datos reales (faltantes y rotacion).</p>
+        <p class="feature-item"><span class="feature-icon">&#9989; &#128202;</span> Da visibilidad clara de ingresos, costos y rentabilidad diaria.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>Developer: Adrian Benitez Dev</span>
+      <span>web actualmente en construccion desde el 10/2/26</span>
+    </div>
+  </footer>
+
+
+
+<!-- 
+  <script type="module" src="js/login.js"></script> -->
+</body>
+</html>
+
