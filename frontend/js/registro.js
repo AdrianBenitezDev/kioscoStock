@@ -1,4 +1,4 @@
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { ensureFirebaseAuth, firebaseAuth, firebaseConfig, firestoreDb } from "../config.js";
 import { ensureCurrentUserProfile, signInWithGoogle } from "./auth.js";
 import { openDatabase } from "./db.js";
@@ -17,7 +17,6 @@ const provinceSelect = document.getElementById("register-province");
 const phoneInput = document.getElementById("register-phone");
 const registerEmailInput = document.getElementById("register-email");
 const PROVINCES_API_URL = "https://countriesnow.space/api/v0.1/countries/states";
-const PLAN_DOC_IDS = ["prueba", "standar", "premiun"];
 
 let availablePlans = [];
 let currentCountryForProvinces = "";
@@ -392,12 +391,8 @@ async function loadPlans() {
   plansLoaded = false;
 
   try {
-    const snaps = await Promise.all(
-      PLAN_DOC_IDS.map((planId) => getDoc(doc(firestoreDb, "planes", planId)))
-    );
-    const docsData = snaps
-      .filter((snap) => snap.exists())
-      .map((snap) => ({ id: snap.id, ...(snap.data() || {}) }));
+    const plansSnap = await getDocs(collection(firestoreDb, "planes"));
+    const docsData = plansSnap.docs.map((snap) => ({ id: snap.id, ...(snap.data() || {}) }));
 
     availablePlans = normalizePlans(docsData);
     if (!availablePlans.length) {
@@ -432,12 +427,22 @@ function normalizePlans(source) {
         caracteristicas: Array.isArray(item?.caracteristicas)
           ? item.caracteristicas.map((entry) => String(entry || "").trim()).filter(Boolean)
           : [],
-        activo: item?.activo !== false,
+        activo: toBoolean(item?.activo, true),
         orden: Number(item?.orden || 0)
       };
     })
     .filter((item) => item.activo && Boolean(item.id))
     .sort((a, b) => a.orden - b.orden);
+}
+
+function toBoolean(value, fallback) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return fallback;
 }
 
 function renderPlanCards(plans) {
