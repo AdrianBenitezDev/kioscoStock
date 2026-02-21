@@ -78,7 +78,7 @@ const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] }
     res.status(200).json({ ok: true, email });
   } catch (error) {
     console.error("sendEmployerVerificationEmail fallo:", error);
-    res.status(500).json({ ok: false, error: "No se pudo enviar el correo de verificacion.",detalle: error.message || error.toString() });
+    res.status(500).json({ ok: false, error: "No se pudo enviar el correo de verificacion.",detalle: error.message || error.toString(), email:email });
   }
 });
 
@@ -116,7 +116,7 @@ async function sendResendEmail({ to, verificationLink }) {
     throw new Error("Falta RESEND_API_KEY en variables de entorno.");
   }
 
-  const from = String(process.env.RESEND_FROM || "onboarding@resend.dev").trim();
+  const from = String(process.env.RESEND_FROM || "registro@stockfacil.com.ar").trim();
   const payload = {
     from,
     to: [to],
