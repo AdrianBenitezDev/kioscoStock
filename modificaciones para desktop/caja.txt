@@ -1,0 +1,28 @@
+Listo, apliqué el arreglo para que caja trabaje con ventas abiertas reales y no solo con las locales del día.
+
+Cambios hechos:
+
+Caja ahora carga ventas abiertas (cajaCerrada == false) desde Firestore por usuario activo.
+cash.js (line 25)
+cash.js (line 179)
+cash.js (line 191)
+Para empleado filtra usuarioUid == session.userId.
+Si no hay nube disponible, hace fallback a local y filtra por cajaCerrada !== true.
+El cierre backend ahora busca pendientes por cajaCerrada == false (no por cajaId == null).
+closeCashbox.js (line 14)
+Esto corrige el caso donde ventas online tenían cajaCerrada: false pero no matcheaban por cajaId.
+El botón TERMINAR TURNO ya no queda bloqueado por “ya hubo cierre hoy”.
+panel.js (line 795)
+Ahora se habilita si hay ventas pendientes (salesCount > 0).
+Ajusté el mensaje/alcance para reflejar pendientes de caja abierta.
+cash.js (line 34)
+cash.js (line 61)
+Validación:
+
+cash.js
+panel.js
+closeCashbox.js
+Todo sin errores de sintaxis.
+Siguiente paso necesario:
+
+Desplegar Functions para que tome el cambio de closeCashbox (closeCashbox.js), si no, frontend y backend quedarían desalineados.

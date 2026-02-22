@@ -792,7 +792,7 @@ function renderCashSnapshot(snapshot) {
   if (canViewProfit) {
     renderCashClosuresTable(snapshot.recentClosures, { maskProfit });
   }
-  dom.closeShiftBtn.disabled = Boolean(snapshot.todayClosure);
+  dom.closeShiftBtn.disabled = Number(snapshot.summary?.salesCount || 0) === 0;
 }
 
 function handleToggleCashPrivacy() {

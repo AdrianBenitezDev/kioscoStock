@@ -11,7 +11,7 @@ const closeCashbox = onCall(async (request) => {
     .collection("tenants")
     .doc(tenantId)
     .collection("ventas")
-    .where("cajaId", "==", null)
+    .where("cajaCerrada", "==", false)
     .where("usuarioUid", "==", uid)
     .get();
 

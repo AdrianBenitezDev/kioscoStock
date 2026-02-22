@@ -1,14 +1,19 @@
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-functions.js";
+import {
+  collection,
+  getDocs,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { ensureFirebaseAuth, firebaseApp, firebaseAuth } from "../config.js";
 import { getCurrentSession } from "./auth.js";
 import {
   assignCashboxToSalesByIds,
   getCashClosuresByKioscoAndDateRange,
-  getCashClosureByKey,
-  getSalesByKioscoAndDateRange,
-  getSalesByKioscoUserAndDateRange,
+  getSalesByKiosco,
   putCashClosure
 } from "./db.js";
+import { firestoreDb } from "../config.js";
 import { syncPendingSales } from "./sales.js";
 
 const functions = getFunctions(firebaseApp);
@@ -20,15 +25,17 @@ export async function getCashSnapshotForToday() {
     return { ok: false, error: "Sesion expirada. Inicia sesion nuevamente.", requiresLogin: true };
   }
 
-  const { startIso, endIso, dateKey } = getTodayRangeIso();
-  const sales = await loadScopedSales(session, startIso, endIso);
+  const { dateKey } = getTodayRangeIso();
+  const sales = await loadScopedOpenSales(session);
   const orderedSales = sales.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   const summary = summarizeSales(orderedSales);
   const scopeKey = getScopeKey(session);
-  const closureKey = buildClosureKey(session.tenantId, dateKey, scopeKey);
-  const todayClosure = await getCashClosureByKey(closureKey);
   const recentClosures = await listRecentClosures(session, scopeKey);
-  const scopeLabel = session.role === "empleador" ? "Vista: todo el kiosco" : "Vista: solo tus ventas";
+  const todayClosure = recentClosures.find((closure) => String(closure.dateKey || "") === dateKey) || null;
+  const scopeLabel =
+    session.role === "empleador"
+      ? "Vista: ventas pendientes del kiosco"
+      : "Vista: tus ventas pendientes (caja abierta)";
 
   return {
     ok: true,
@@ -47,22 +54,15 @@ export async function closeTodayShift() {
     return { ok: false, error: "Sesion expirada. Inicia sesion nuevamente.", requiresLogin: true };
   }
 
-  const { startIso, endIso, dateKey } = getTodayRangeIso();
-  const localSales = await loadScopedSales(session, startIso, endIso);
+  const { dateKey } = getTodayRangeIso();
+  const localSales = await loadScopedOpenSales(session);
   const localSummary = summarizeSales(localSales);
   if (localSummary.salesCount === 0) {
-    return { ok: false, error: "No hay ventas hoy para cerrar turno." };
+    return { ok: false, error: "No hay ventas pendientes para cerrar caja." };
   }
 
   const scopeKey = getScopeKey(session);
   const closureKey = buildClosureKey(session.tenantId, dateKey, scopeKey);
-  const existing = await getCashClosureByKey(closureKey);
-  if (existing) {
-    return {
-      ok: false,
-      error: `El turno de hoy ya fue cerrado. Monto registrado: $${Number(existing.totalAmount || 0).toFixed(2)}.`
-    };
-  }
 
   const canUseBackend = navigator.onLine && (await hasFirebaseSession());
   if (!canUseBackend) {
@@ -126,7 +126,8 @@ export async function closeTodayShift() {
 function buildLocalClosure({ session, dateKey, closureKey, summary, synced, id = null, ventasIncluidas = [] }) {
   return {
     id: id || `LOCAL-CAJA-${Date.now()}`,
-    closureKey,
+    closureKey: `${closureKey}::${Date.now()}`,
+    scopeKey: getScopeKey(session),
     kioscoId: session.tenantId,
     userId: session.userId,
     role: session.role,
@@ -162,16 +163,69 @@ async function listRecentClosures(session, scopeKey) {
   const { startIso, endIso } = getRecentDaysRangeIso(30);
   const closures = await getCashClosuresByKioscoAndDateRange(session.tenantId, startIso, endIso);
   return closures
-    .filter((closure) => closure.closureKey === buildClosureKey(session.tenantId, closure.dateKey, scopeKey))
+    .filter((closure) => {
+      const closureScope = String(closure.scopeKey || "").trim();
+      if (closureScope) return closureScope === scopeKey;
+      return String(closure.closureKey || "").includes(`::${scopeKey}`);
+    })
     .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
     .slice(0, 10);
 }
 
-async function loadScopedSales(session, startIso, endIso) {
-  if (session.role === "empleador") {
-    return getSalesByKioscoAndDateRange(session.tenantId, startIso, endIso);
+async function loadScopedOpenSales(session) {
+  const canUseCloud = navigator.onLine && (await hasFirebaseSession());
+  if (canUseCloud) {
+    const cloudSales = await loadScopedOpenSalesFromCloud(session);
+    if (cloudSales.length > 0) return cloudSales;
   }
-  return getSalesByKioscoUserAndDateRange(session.tenantId, session.userId, startIso, endIso);
+  return loadScopedOpenSalesFromLocal(session);
+}
+
+async function loadScopedOpenSalesFromCloud(session) {
+  const tenantPath = collection(firestoreDb, "tenants", session.tenantId, "ventas");
+  const filters = [where("cajaCerrada", "==", false)];
+  if (session.role !== "empleador") {
+    filters.push(where("usuarioUid", "==", session.userId));
+  }
+  const snap = await getDocs(query(tenantPath, ...filters));
+  const rows = snap.docs.map((docSnap) => normalizeCloudSale(docSnap.id, docSnap.data() || {}));
+  return rows.filter((sale) => sale.cajaCerrada !== true);
+}
+
+async function loadScopedOpenSalesFromLocal(session) {
+  const rows = await getSalesByKiosco(session.tenantId);
+  return rows.filter((sale) => {
+    if (sale?.cajaCerrada === true) return false;
+    if (session.role === "empleador") return true;
+    return String(sale.userId || sale.usuarioUid || "") === String(session.userId || "");
+  });
+}
+
+function normalizeCloudSale(id, sale) {
+  return {
+    id: id || String(sale.idVenta || ""),
+    userId: String(sale.usuarioUid || sale.userId || ""),
+    username: String(sale.usuarioNombre || sale.username || "-"),
+    itemsCount: Number(sale.itemsCount || 0),
+    total: Number(sale.total || 0),
+    totalCost: Number(sale.totalCost || sale.totalCosto || 0),
+    gananciaReal: Number(sale.gananciaReal ?? sale.ganaciaReal ?? sale.profit ?? 0),
+    profit: Number(sale.gananciaReal ?? sale.ganaciaReal ?? sale.profit ?? 0),
+    cajaCerrada: sale.cajaCerrada === true,
+    createdAt: normalizeDateToIso(sale.createdAt)
+  };
+}
+
+function normalizeDateToIso(value) {
+  if (!value) return "";
+  if (typeof value?.toDate === "function") {
+    return value.toDate().toISOString();
+  }
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return "";
 }
 
 async function hasFirebaseSession() {
