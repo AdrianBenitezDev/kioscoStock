@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StockFacil - Planes</title>
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top-banner">
+    <div class="top-banner-inner">
+      <div>
+        <strong class="top-banner-title top-banner-brand">stockfacil.com.ar</strong>
+        <span class="top-banner-subtitle">Gestion de plan (boceto)</span>
+      </div>
+      <div class="top-banner-controls">
+        <a href="panel.html" class="top-banner-mode-toggle">Volver al panel</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h2>Planes disponibles</h2>
+      <p class="subtitle">Boceto inicial. Luego conectamos lectura real, seleccion y actualizacion.</p>
+
+      <div class="cash-summary">
+        <article class="cash-card">
+          <h4>Plan Prueba</h4>
+          <p class="subtitle">Hasta 2 empleados</p>
+          <p class="cash-value">$0</p>
+          <button type="button" disabled>Seleccionar (proximamente)</button>
+        </article>
+        <article class="cash-card">
+          <h4>Plan Basico</h4>
+          <p class="subtitle">Hasta 5 empleados</p>
+          <p class="cash-value">$9.99</p>
+          <button type="button" disabled>Seleccionar (proximamente)</button>
+        </article>
+        <article class="cash-card">
+          <h4>Plan Pro</h4>
+          <p class="subtitle">Hasta 15 empleados</p>
+          <p class="cash-value">$19.99</p>
+          <button type="button" disabled>Seleccionar (proximamente)</button>
+        </article>
+      </div>
+
+      <p id="plans-feedback" class="feedback" aria-live="polite">
+        Pendiente: integrar carga de planes desde backend y actualizar el plan del tenant.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

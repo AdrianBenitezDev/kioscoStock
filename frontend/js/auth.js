@@ -238,6 +238,7 @@ export async function ensureCurrentUserProfile() {
     correoVerificado: role === "empleado" ? authUser.emailVerified === true : profile.correoVerificado === true,
     puedeCrearProductos: canCreateProducts,
     canCreateProducts,
+    planActual: String(profile.plan || profile.planId || profile.planActual || "").trim().toLowerCase() || "prueba",
     username: profile.username || authUser.email || authUser.uid,
     loggedAt: new Date().toISOString()
   };

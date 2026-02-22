@@ -5,10 +5,17 @@ const ICON_REMOVE_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>';
 
 export function showAppShell(user) {
-  dom.sessionInfo.textContent = `${user.displayName} (${user.role})`;
-  dom.sessionEmail.textContent = user.email ? `Email: ${user.email}` : "----@gmail.com";
   const role = String(user.role || "").trim().toLowerCase();
   const isOwner = role === "empleador";
+  const planLabel = String(user.planActual || "prueba").toUpperCase();
+  if (isOwner) {
+    dom.sessionInfo.innerHTML = `${escapeHtml(user.displayName)} (${escapeHtml(
+      user.role
+    )}) · Plan: <a href="planes.html" class="session-plan-link">${escapeHtml(planLabel)}</a>`;
+  } else {
+    dom.sessionInfo.textContent = `${user.displayName} (${user.role})`;
+  }
+  dom.sessionEmail.textContent = user.email ? `Email: ${user.email}` : "----@gmail.com";
   const canCreateProducts = isOwner || user?.canCreateProducts === true || user?.puedeCrearProductos === true;
   dom.providerCostGroup.classList.toggle("hidden", !canCreateProducts);
   dom.providerCostInput.required = canCreateProducts;

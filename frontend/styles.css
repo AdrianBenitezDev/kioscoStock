@@ -7,6 +7,16 @@
   --line: #dbe3ef;
 }
 
+.session-plan-link {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.session-plan-link:hover {
+  text-decoration: underline;
+}
+
 * {
   box-sizing: border-box;
 }
