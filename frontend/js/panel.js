@@ -2761,7 +2761,10 @@ async function addFromSaleSearch(showNoMatchMessage = false) {
 }
 
 function addProductToCurrentSale(product, { fromScanner = false } = {}) {
-  const saleType = normalizeProductSaleType(product?.saleType || product?.tipoVenta);
+  let saleType = normalizeProductSaleType(product?.saleType || product?.tipoVenta);
+  if (!canSellByGramsForCurrentBusiness()) {
+    saleType = "unidad";
+  }
   if (saleType === "gramos") {
     addGramsProductToCurrentSale(product, { fromScanner });
     return;
@@ -2794,6 +2797,19 @@ function addProductToCurrentSale(product, { fromScanner = false } = {}) {
 }
 
 function addGramsProductToCurrentSale(product, { fromScanner = false } = {}) {
+  if (!canSellByGramsForCurrentBusiness()) {
+    // En negocios sin venta por gramos, cualquier alta desde venta se fuerza a unidad.
+    addProductToCurrentSale(
+      {
+        ...(product || {}),
+        saleType: "unidad",
+        tipoVenta: "unidad"
+      },
+      { fromScanner }
+    );
+    return;
+  }
+
   const gramsPerUnit = Math.max(1, Math.trunc(Number(product?.gramsPerUnit ?? product?.gramosPorUnidad ?? 1000)));
   const suggested = fromScanner ? "250" : "500";
   const raw = window.prompt(
@@ -2843,6 +2859,13 @@ function addGramsProductToCurrentSale(product, { fromScanner = false } = {}) {
 function normalizeProductSaleType(value) {
   const normalized = String(value || "").trim().toLowerCase();
   return normalized === "gramos" || normalized === "g" ? "gramos" : "unidad";
+}
+
+function canSellByGramsForCurrentBusiness() {
+  const businessTypeId = String(currentUser?.businessTypeId || currentUser?.tipoNegocioId || "")
+    .trim()
+    .toLowerCase();
+  return businessTypeId === "kioscoalmacen";
 }
 
 
