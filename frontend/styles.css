@@ -1190,7 +1190,7 @@ thead th {
 .cash-header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.6rem;
 }
 
