@@ -1,9 +1,14 @@
-const { onRequest, Timestamp, adminAuth, db } = require("./shared/context");
+﻿const { onRequest, Timestamp, adminAuth, db } = require("./shared/context");
+
 const ALLOWED_ORIGINS = new Set([
   "https://admin.stockfacil.com.ar",
   "https://stockfacil.com.ar",
   "https://www.stockfacil.com.ar"
 ]);
+
+const BUSINESS_CUSTOM_LABEL_MAX = 30;
+const CUSTOM_BUSINESS_TYPE_ID = "custom";
+const DEFAULT_BUSINESS_TYPE_ID = "kiosco";
 
 const registerEmployerProfile = onRequest(async (req, res) => {
   if (!setCors(req, res)) {
@@ -34,7 +39,8 @@ const registerEmployerProfile = onRequest(async (req, res) => {
     }
 
     const authUser = await adminAuth.getUser(uid);
-    const payload = await normalizePayload(req.body || {}, authUser.email || "");
+    const catalog = await loadBusinessCatalog();
+    const payload = await normalizePayload(req.body || {}, authUser.email || "", catalog);
     if (!payload.ok) {
       res.status(400).json({ ok: false, error: payload.error, fieldErrors: payload.fieldErrors || {} });
       return;
@@ -46,11 +52,7 @@ const registerEmployerProfile = onRequest(async (req, res) => {
       return;
     }
 
-    const existingByEmail = await db
-      .collection("usuarios")
-      .where("email", "==", payload.data.email)
-      .limit(1)
-      .get();
+    const existingByEmail = await db.collection("usuarios").where("email", "==", payload.data.email).limit(1).get();
     if (!existingByEmail.empty) {
       res.status(409).json({ ok: false, error: "Este usuario ya esta registrado." });
       return;
@@ -62,7 +64,6 @@ const registerEmployerProfile = onRequest(async (req, res) => {
 
     const batch = db.batch();
 
-    //datos del empleador
     batch.set(db.collection("usuarios").doc(uid), {
       uid,
       correoVerificado: false,
@@ -78,11 +79,12 @@ const registerEmployerProfile = onRequest(async (req, res) => {
       pais: payload.data.pais,
       telefono: payload.data.telefono,
       plan: payload.data.plan,
+      businessTypeId: payload.data.businessTypeId,
+      businessTypeLabel: payload.data.businessTypeLabel,
       fechaCreacion: now,
       updatedAt: now
     });
 
-    //datos del kiosco
     batch.set(db.collection("tenants").doc(kioscoId), {
       kioscoId,
       ownerUid: uid,
@@ -94,6 +96,8 @@ const registerEmployerProfile = onRequest(async (req, res) => {
       localidad: payload.data.localidad,
       domicilio: payload.data.domicilio,
       plan: payload.data.plan,
+      businessTypeId: payload.data.businessTypeId,
+      businessTypeLabel: payload.data.businessTypeLabel,
       estado: "activo",
       createdAt: now,
       updatedAt: now
@@ -133,7 +137,7 @@ function getBearerToken(req) {
   return match ? String(match[1] || "").trim() : "";
 }
 
-async function normalizePayload(input, fallbackEmail) {
+async function normalizePayload(input, fallbackEmail, catalog) {
   const data = {
     nombreApellido: String(input.nombreApellido || "").trim(),
     email: String(input.email || fallbackEmail || "").trim().toLowerCase(),
@@ -144,7 +148,9 @@ async function normalizePayload(input, fallbackEmail) {
     distrito: String(input.distrito || "").trim(),
     localidad: String(input.localidad || "").trim(),
     domicilio: String(input.domicilio || "").trim(),
-    plan: String(input.plan || "").trim()
+    plan: String(input.plan || "").trim(),
+    businessTypeId: String(input.businessTypeId || "").trim().toLowerCase(),
+    businessTypeCustomLabel: sanitizeCustomBusinessLabel(input.businessTypeCustomLabel)
   };
 
   const fieldErrors = {};
@@ -175,11 +181,28 @@ async function normalizePayload(input, fallbackEmail) {
   if (!data.domicilio) {
     fieldErrors.domicilio = "Domicilio obligatorio.";
   }
+
   const allowedPlans = await loadAvailablePlans();
   if (!allowedPlans.size) {
     fieldErrors.plan = "No hay planes disponibles en backend.";
   } else if (!allowedPlans.has(data.plan.toLowerCase())) {
     fieldErrors.plan = "Plan invalido.";
+  }
+
+  if (!data.businessTypeId) {
+    fieldErrors.businessTypeId = "Selecciona un tipo de negocio.";
+  }
+
+  if (data.businessTypeId === CUSTOM_BUSINESS_TYPE_ID) {
+    if (!data.businessTypeCustomLabel) {
+      fieldErrors.businessTypeCustomLabel = "Ingresa una categoria personalizada.";
+    } else if (data.businessTypeCustomLabel.length > BUSINESS_CUSTOM_LABEL_MAX) {
+      fieldErrors.businessTypeCustomLabel = `Maximo ${BUSINESS_CUSTOM_LABEL_MAX} caracteres.`;
+    } else if (!isValidCustomBusinessLabel(data.businessTypeCustomLabel)) {
+      fieldErrors.businessTypeCustomLabel = "Solo letras, numeros, espacios, guion y apostrofe.";
+    }
+  } else if (!catalog.activeTypeIds.has(data.businessTypeId)) {
+    fieldErrors.businessTypeId = "Tipo de negocio invalido.";
   }
 
   const hasErrors = Object.keys(fieldErrors).length > 0;
@@ -188,6 +211,11 @@ async function normalizePayload(input, fallbackEmail) {
   }
 
   data.plan = data.plan.toLowerCase();
+  data.businessTypeLabel =
+    data.businessTypeId === CUSTOM_BUSINESS_TYPE_ID
+      ? data.businessTypeCustomLabel
+      : catalog.typeLabelById.get(data.businessTypeId) || data.businessTypeId;
+
   return { ok: true, data };
 }
 
@@ -212,6 +240,59 @@ async function loadAvailablePlans() {
   }
 }
 
+async function loadBusinessCatalog() {
+  try {
+    const snap = await db.collection("configuraciones").doc("catalogo_negocios").get();
+    if (!snap.exists) {
+      return buildFallbackBusinessCatalog();
+    }
+    const data = snap.data() || {};
+    const rows = Array.isArray(data.tiposNegocio) ? data.tiposNegocio : [];
+
+    const activeTypeIds = new Set();
+    const typeLabelById = new Map();
+    for (const row of rows) {
+      const id = String(row?.id || "").trim().toLowerCase();
+      if (!id || id === CUSTOM_BUSINESS_TYPE_ID) continue;
+      const activo = row?.activo !== false;
+      if (!activo) continue;
+      const nombre = String(row?.nombre || id).trim() || id;
+      activeTypeIds.add(id);
+      typeLabelById.set(id, nombre);
+    }
+
+    if (!activeTypeIds.size) {
+      return buildFallbackBusinessCatalog();
+    }
+
+    return { activeTypeIds, typeLabelById };
+  } catch (error) {
+    console.warn("registerEmployerProfile: no se pudo leer catalogo_negocios", error?.message || error);
+    return buildFallbackBusinessCatalog();
+  }
+}
+
+function buildFallbackBusinessCatalog() {
+  return {
+    activeTypeIds: new Set([DEFAULT_BUSINESS_TYPE_ID]),
+    typeLabelById: new Map([[DEFAULT_BUSINESS_TYPE_ID, "Kiosco"]])
+  };
+}
+
+function sanitizeCustomBusinessLabel(valueLike) {
+  return String(valueLike || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    ;
+}
+
+function isValidCustomBusinessLabel(valueLike) {
+  const value = sanitizeCustomBusinessLabel(valueLike);
+  if (!value) return false;
+  return /^[A-Za-z0-9\s\-']{1,30}$/.test(value);
+}
+
 module.exports = {
   registerEmployerProfile
 };
+

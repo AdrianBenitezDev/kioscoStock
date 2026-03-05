@@ -55,6 +55,24 @@
         <input id="register-kiosk-name" name="nombreKiosco" type="text" required>
         <small id="err-nombreKiosco" class="feedback"></small>
 
+        <label for="register-business-type">Tipo de negocio</label>
+        <select id="register-business-type" name="businessTypeId" required>
+          <option value="">Selecciona un tipo de negocio</option>
+        </select>
+        <small id="err-businessTypeId" class="feedback"></small>
+
+        <div id="register-business-custom-wrap" class="hidden">
+          <label for="register-business-custom-label">Otra categoria</label>
+          <input
+            id="register-business-custom-label"
+            name="businessTypeCustomLabel"
+            type="text"
+            maxlength="30"
+            placeholder="Ej: Ferreteria"
+          >
+          <small id="err-businessTypeCustomLabel" class="feedback"></small>
+        </div>
+
         <label for="register-country-input">Pais</label>
         <div class="country-autocomplete">
           <input id="register-country-input" name="pais" type="text" autocomplete="off" required>

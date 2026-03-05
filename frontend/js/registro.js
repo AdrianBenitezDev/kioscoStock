@@ -1,6 +1,14 @@
 import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { ensureFirebaseAuth, firebaseAuth, firebaseConfig, firestoreDb } from "../config.js";
 import { ensureCurrentUserProfile, signInWithGoogle } from "./auth.js";
+import {
+  BUSINESS_CUSTOM_LABEL_MAX,
+  CUSTOM_BUSINESS_TYPE_ID,
+  getBusinessTypesForRegistration,
+  isValidCustomBusinessLabel,
+  normalizeBusinessTypeId,
+  sanitizeCustomBusinessLabel
+} from "./business_catalog.js";
 import { openDatabase } from "./db.js";
 import { paises } from "./paises.js";
 
@@ -16,12 +24,17 @@ const countrySuggestions = document.getElementById("register-country-suggestions
 const provinceSelect = document.getElementById("register-province");
 const phoneInput = document.getElementById("register-phone");
 const registerEmailInput = document.getElementById("register-email");
+const businessTypeSelect = document.getElementById("register-business-type");
+const businessCustomWrap = document.getElementById("register-business-custom-wrap");
+const businessCustomInput = document.getElementById("register-business-custom-label");
 const PROVINCES_API_URL = "https://countriesnow.space/api/v0.1/countries/states";
 
 let availablePlans = [];
+let availableBusinessTypes = [];
 let currentCountryForProvinces = "";
 let currentProvinceOptions = [];
 let plansLoaded = false;
+let businessTypesLoaded = false;
 
 init().catch((error) => {
   console.error(error);
@@ -40,8 +53,9 @@ async function init() {
 
   initCountryAutocomplete();
   prefillEmailFromQuery();
+  await loadBusinessTypes();
   await loadPlans();
-  if (!plansLoaded) {
+  if (!plansLoaded || !businessTypesLoaded) {
     registerSubmitBtn.disabled = true;
   }
 
@@ -56,6 +70,8 @@ async function init() {
     selectCountry(selectedCountry);
   });
   plansContainer?.addEventListener("click", handlePlanCardClick);
+  businessTypeSelect?.addEventListener("change", handleBusinessTypeChange);
+  businessCustomInput?.addEventListener("input", handleBusinessCustomInput);
   registerForm?.addEventListener("submit", handleRegisterSubmit);
   backLoginBtn?.addEventListener("click", () => {
     window.location.href = "index.html";
@@ -306,7 +322,9 @@ function getFormPayload() {
     distrito: String(formData.get("distrito") || "").trim(),
     localidad: String(formData.get("localidad") || "").trim(),
     domicilio: String(formData.get("domicilio") || "").trim(),
-    plan: String(formData.get("plan") || "").trim().toLowerCase()
+    plan: String(formData.get("plan") || "").trim().toLowerCase(),
+    businessTypeId: normalizeBusinessTypeId(formData.get("businessTypeId")),
+    businessTypeCustomLabel: sanitizeCustomBusinessLabel(formData.get("businessTypeCustomLabel"))
   };
 }
 
@@ -350,6 +368,22 @@ function validatePayload(payload) {
   const validPlans = new Set(availablePlans.map((plan) => String(plan.id || "").toLowerCase()));
   if (!validPlans.has(payload.plan)) {
     fieldErrors.plan = "Selecciona un plan valido.";
+  }
+
+  const selectedBusinessType = normalizeBusinessTypeId(payload.businessTypeId);
+  const validBusinessTypes = new Set(availableBusinessTypes.map((row) => row.id));
+  if (!validBusinessTypes.has(selectedBusinessType) && selectedBusinessType !== CUSTOM_BUSINESS_TYPE_ID) {
+    fieldErrors.businessTypeId = "Selecciona un tipo de negocio valido.";
+  }
+
+  if (selectedBusinessType === CUSTOM_BUSINESS_TYPE_ID) {
+    if (!payload.businessTypeCustomLabel) {
+      fieldErrors.businessTypeCustomLabel = "Ingresa la categoria de tu negocio.";
+    } else if (payload.businessTypeCustomLabel.length > BUSINESS_CUSTOM_LABEL_MAX) {
+      fieldErrors.businessTypeCustomLabel = `Maximo ${BUSINESS_CUSTOM_LABEL_MAX} caracteres.`;
+    } else if (!isValidCustomBusinessLabel(payload.businessTypeCustomLabel)) {
+      fieldErrors.businessTypeCustomLabel = "Solo letras, numeros, espacios, guion y apostrofe.";
+    }
   }
 
   return {
@@ -402,7 +436,7 @@ async function loadPlans() {
     renderPlanCards(availablePlans);
     plansLoaded = true;
     plansFeedback.textContent = "";
-    registerSubmitBtn.disabled = false;
+    registerSubmitBtn.disabled = !businessTypesLoaded;
   } catch (error) {
     console.warn("No se pudieron cargar planes desde Firestore:", error?.message || error);
     plansContainer.innerHTML = "";
@@ -410,6 +444,56 @@ async function loadPlans() {
     plansLoaded = false;
     plansFeedback.textContent = "No se pudieron cargar los planes desde el backend.";
     registerSubmitBtn.disabled = true;
+  }
+}
+
+async function loadBusinessTypes() {
+  if (!businessTypeSelect) return;
+  businessTypesLoaded = false;
+  availableBusinessTypes = [];
+  businessTypeSelect.innerHTML = '<option value="">Cargando tipos de negocio...</option>';
+  businessTypeSelect.disabled = true;
+
+  try {
+    availableBusinessTypes = await getBusinessTypesForRegistration();
+    const options = [
+      '<option value="">Selecciona un tipo de negocio</option>',
+      ...availableBusinessTypes.map(
+        (row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.nombre)}</option>`
+      ),
+      `<option value="${CUSTOM_BUSINESS_TYPE_ID}">Otra categoria</option>`
+    ];
+    businessTypeSelect.innerHTML = options.join("");
+    businessTypeSelect.disabled = false;
+    businessTypesLoaded = true;
+    handleBusinessTypeChange();
+  } catch (error) {
+    console.warn("No se pudo cargar catalogo de tipo de negocio:", error?.message || error);
+    businessTypeSelect.innerHTML = '<option value="">No se pudieron cargar tipos</option>';
+    businessTypeSelect.disabled = true;
+    businessTypesLoaded = false;
+  } finally {
+    registerSubmitBtn.disabled = !plansLoaded || !businessTypesLoaded;
+  }
+}
+
+function handleBusinessTypeChange() {
+  const selected = normalizeBusinessTypeId(businessTypeSelect?.value);
+  const showCustom = selected === CUSTOM_BUSINESS_TYPE_ID;
+  businessCustomWrap?.classList.toggle("hidden", !showCustom);
+  if (businessCustomInput) {
+    businessCustomInput.required = showCustom;
+    if (!showCustom) {
+      businessCustomInput.value = "";
+    }
+  }
+}
+
+function handleBusinessCustomInput() {
+  if (!businessCustomInput) return;
+  const sanitized = sanitizeCustomBusinessLabel(businessCustomInput.value);
+  if (sanitized !== businessCustomInput.value) {
+    businessCustomInput.value = sanitized;
   }
 }
 

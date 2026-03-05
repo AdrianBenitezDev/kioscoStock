@@ -87,7 +87,7 @@ export function clearEmployeeFeedback() {
 export function renderCategoryOptions(categories) {
   const options = [
     '<option value="">Selecciona una categoria</option>',
-    ...categories.map((category) => `<option value="${category}">${category}</option>`)
+    ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
   ];
   dom.productCategory.innerHTML = options.join("");
 }
@@ -95,7 +95,7 @@ export function renderCategoryOptions(categories) {
 export function renderStockCategoryOptions(categories) {
   const options = [
     '<option value="">Todas las categorias</option>',
-    ...categories.map((category) => `<option value="${category}">${category}</option>`)
+    ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
   ];
   dom.stockCategoryFilter.innerHTML = options.join("");
 }

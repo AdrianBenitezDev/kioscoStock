@@ -8,7 +8,7 @@ import {
   deleteProductById,
   putProduct
 } from "./db.js";
-import { PRODUCT_CATEGORIES } from "./config.js";
+import { getCategoriesForSession } from "./business_catalog.js";
 import { ensureFirebaseAuth, firebaseApp, firebaseAuth } from "../config.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-functions.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
@@ -43,7 +43,8 @@ export async function createProduct(formData) {
     return { ok: false, error: "Completa nombre del producto." };
   }
 
-  if (!category || !PRODUCT_CATEGORIES.includes(category)) {
+  const allowedCategories = await getCategoriesForSession(session);
+  if (!category || !allowedCategories.includes(category)) {
     return { ok: false, error: "Debes seleccionar una categoria valida." };
   }
 
@@ -299,7 +300,8 @@ export async function updateProductDetails(productId, detailsInput) {
   if (!nextName) {
     return { ok: false, error: "El nombre del producto es obligatorio." };
   }
-  if (!nextCategory || !PRODUCT_CATEGORIES.includes(nextCategory)) {
+  const allowedCategories = await getCategoriesForSession(session);
+  if (!nextCategory || !allowedCategories.includes(nextCategory)) {
     return { ok: false, error: "Debes seleccionar una categoria valida." };
   }
   if (!Number.isFinite(nextStock) || nextStock < 0) {

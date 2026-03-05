@@ -1,12 +1,13 @@
-export const DB_NAME = "kioscoStockDB";
-export const DB_VERSION = 6;
+﻿export const DB_NAME = "kioscoStockDB";
+export const DB_VERSION = 7;
 
 export const STORES = {
   users: "users",
   products: "products",
   sales: "sales",
   saleItems: "saleItems",
-  cashClosures: "cashClosures"
+  cashClosures: "cashClosures",
+  businessCatalog: "businessCatalog"
 };
 
 export const FIRESTORE_COLLECTIONS = {
@@ -20,33 +21,30 @@ export const FIRESTORE_COLLECTIONS = {
   sesiones: "sesiones"
 };
 
-export const PRODUCT_CATEGORIES2 = [
+export const BUSINESS_CATALOG_DOC_PATH = {
+  collection: "configuraciones",
+  docId: "catalogo_negocios"
+};
+
+export const DEFAULT_BUSINESS_TYPE_ID = "kiosco";
+export const CUSTOM_BUSINESS_TYPE_ID = "custom";
+export const BUSINESS_CUSTOM_LABEL_MAX = 30;
+
+export const DEFAULT_PRODUCT_CATEGORIES = [
   "Bebidas",
+  "Bebidas Alcoholicas",
   "Almacen",
   "Golosinas",
   "Snacks",
   "Cigarrillos",
   "Limpieza",
-  "Otros"
-];
-
-
-//proximamente
-export const PRODUCT_CATEGORIES = [
-  "Bebidas",
-  "Bebidas Alcohólicas",
-  "Almacén",
-  "Golosinas",
-  "Snacks",
-  "Cigarrillos",
-  "Limpieza",
-  "Perfumería",
-  "Lácteos",
+  "Perfumeria",
+  "Lacteos",
   "Panificados",
   "Congelados",
   "Enlatados",
-  "Fiambrería",
-  "Artículos Escolares",
+  "Fiambreria",
+  "Articulos Escolares",
   "Recargas",
   "Otros"
 ];

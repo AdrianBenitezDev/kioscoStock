@@ -145,6 +145,11 @@ match /planes/{planId} {
     allow write: if false;
     }
 
+match /configuraciones/{docId} {
+   allow read: if true;
+   allow write: if false;
+}
+
 
     match /{document=**} {
       allow read, write: if false;

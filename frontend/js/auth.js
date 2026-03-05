@@ -17,7 +17,7 @@ import {
   collection
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { ensureFirebaseAuth, firebaseAuth, firebaseConfig, firestoreDb } from "../config.js";
-import { FIRESTORE_COLLECTIONS } from "./config.js";
+import { DEFAULT_BUSINESS_TYPE_ID, FIRESTORE_COLLECTIONS } from "./config.js";
 import { syncLoginEventToFirestore } from "./firebase_sync.js";
 
 let currentSession = null;
@@ -251,6 +251,8 @@ export async function ensureCurrentUserProfile() {
     puedeVerStock: canViewStock,
     canViewStock,
     planActual: String(profile.plan || profile.planId || profile.planActual || "").trim().toLowerCase() || "prueba",
+    businessTypeId: resolveBusinessTypeId(profile),
+    businessTypeLabel: resolveBusinessTypeLabel(profile),
     username: profile.username || authUser.email || authUser.uid,
     loggedAt: new Date().toISOString()
   };
@@ -261,6 +263,15 @@ export async function ensureCurrentUserProfile() {
   }
 
   return { ok: true, user: currentSession };
+}
+
+function resolveBusinessTypeId(profile) {
+  const value = String(profile?.businessTypeId || profile?.tipoNegocioId || "").trim().toLowerCase();
+  return value || DEFAULT_BUSINESS_TYPE_ID;
+}
+
+function resolveBusinessTypeLabel(profile) {
+  return String(profile?.businessTypeLabel || profile?.tipoNegocioLabel || "").trim();
 }
 
 function normalizeRole(value) {

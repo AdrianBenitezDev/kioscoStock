@@ -72,6 +72,10 @@ export async function openDatabase() {
           closures.createIndex("byKioscoCreatedAt", ["kioscoId", "createdAt"], { unique: false });
         }
       }
+
+      if (!database.objectStoreNames.contains(STORES.businessCatalog)) {
+        database.createObjectStore(STORES.businessCatalog, { keyPath: "id" });
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -424,6 +428,32 @@ export async function deleteCashClosureById(closureId) {
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error || new Error("No se pudo eliminar cierre local."));
     tx.objectStore(STORES.cashClosures).delete(id);
+  });
+}
+
+export async function getBusinessCatalogCache() {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.businessCatalog, "readonly");
+    const request = tx.objectStore(STORES.businessCatalog).get("catalogo_negocios");
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function putBusinessCatalogCache({ version, catalog, syncedAt }) {
+  const db = await openDatabase();
+  const payload = {
+    id: "catalogo_negocios",
+    version: Number(version || 1),
+    syncedAt: Number(syncedAt || Date.now()),
+    catalog: catalog || null
+  };
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.businessCatalog, "readwrite");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(STORES.businessCatalog).put(payload);
   });
 }
 

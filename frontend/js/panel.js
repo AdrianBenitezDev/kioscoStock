@@ -1,4 +1,4 @@
-import { PRODUCT_CATEGORIES } from "./config.js";
+import { getCategoriesForSession } from "./business_catalog.js";
 import {
   collection,
   getDocs,
@@ -73,6 +73,7 @@ import {
 const currentSaleItems = [];
 let scannerMode = null;
 let currentUser = null;
+let currentBusinessCategories = [];
 let allStockProducts = [];
 let selectedStockProductId = null;
 const UI_MODE_STORAGE_KEY = "kioscoStockUiMode";
@@ -145,14 +146,19 @@ async function init() {
     return;
   }
   currentUser = profileResult.user;
+  try {
+    currentBusinessCategories = await getCategoriesForSession(currentUser);
+  } catch (_) {
+    currentBusinessCategories = ["Otros"];
+  }
   hydrateTenantEmployeesCacheFromLocal();
 
   ensureCashOwnerActionsDom();
   showAppShell(currentUser);
   dom.syncProductsBtn?.classList.toggle("hidden", !canCurrentUserCreateProducts());
   updateStockBulkSaveButtonState();
-  renderCategoryOptions(PRODUCT_CATEGORIES);
-  renderStockCategoryOptions(PRODUCT_CATEGORIES);
+  renderCategoryOptions(currentBusinessCategories);
+  renderStockCategoryOptions(currentBusinessCategories);
   renderStockDetailEditCategoryOptions();
   updateProductSaleTypeControls();
   updateStockDetailSaleTypeControls();
@@ -366,7 +372,7 @@ async function handleAddProductSubmit(event) {
     if (dom.productSaleType) dom.productSaleType.value = "unidad";
     if (dom.productGramsPerUnit) dom.productGramsPerUnit.value = "1000";
     updateProductSaleTypeControls();
-    renderCategoryOptions(PRODUCT_CATEGORIES);
+    renderCategoryOptions(currentBusinessCategories);
     setProductFeedbackSuccess(result.message);
     showAddProductToast(result.message || "Producto creado correctamente.", "success");
     focusBarcodeInputIfDesktop();
@@ -1001,7 +1007,7 @@ function renderStockDetailEditCategoryOptions() {
   if (!dom.stockDetailEditCategory) return;
   const options = [
     '<option value="">Selecciona una categoria</option>',
-    ...PRODUCT_CATEGORIES.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+    ...currentBusinessCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
   ];
   dom.stockDetailEditCategory.innerHTML = options.join("");
 }
@@ -1728,17 +1734,23 @@ async function handleConfirmSalePayment() {
   const checkoutMessage = canViewSaleProfit
     ? `Venta cobrada. Items: ${result.itemsCount}. Total: $${result.total.toFixed(2)}. Ganancia: $${result.profit.toFixed(2)}.`
     : `Venta cobrada. Items: ${result.itemsCount}. Total: $${result.total.toFixed(2)}.`;
-  setScanFeedback(checkoutMessage, "success");
+  
+  //  setScanFeedback(checkoutMessage, "success");
   dom.salePaymentProcessing?.classList.add("hidden");
   dom.salePaymentToast?.classList.remove("hidden");
-  await refreshStock({ skipCloudSync: true });
-  await refreshCashPanel();
-  window.setTimeout(() => {
+
+   window.setTimeout(() => {
     dom.salePaymentToast?.classList.add("hidden");
   
     salePaymentSubmitting = false;
       closeSalePaymentOverlay();
-  }, 900);
+  }, 500);
+  
+  
+  showAddProductToast(checkoutMessage,"success");
+  await refreshStock({ skipCloudSync: true });
+  await refreshCashPanel();
+ 
 }
 
 function setSalePaymentActionsDisabled(disabled) {

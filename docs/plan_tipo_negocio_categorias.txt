@@ -1,0 +1,218 @@
+﻿[PLAN] TIPO DE NEGOCIO + CATEGORIAS DINAMICAS (MODELO SIMPLE)
+
+[ESTADO]
+Este plan reemplaza el esquema anterior por un modelo mas simple:
+- 1 coleccion: configuraciones
+- 1 documento: catalogo_negocios
+- Ahi viven tipos de negocio + categorias + version
+
+[OBJETIVO]
+1) En registro: select de tipo de negocio.
+2) Opcion "Otra categoria" + input custom (max 30).
+3) Validacion en frontend y backend.
+4) Catalogo centralizado en Firebase en 1 solo doc.
+5) Cache en IndexedDB para evitar leer Firebase en cada inicio.
+
+[DOC FIREBASE SUGERIDO - CREAR ESTE]
+Ruta exacta:
+- configuraciones/catalogo_negocios
+{
+  "version": 1,
+  "updatedAt": "SERVER_TIMESTAMP",
+  "tiposNegocio": [
+    {
+      "id": "kioscoAlmacen",
+      "nombre": "Kiosco / Almacen",
+      "activo": true,
+      "orden": 1,
+      "categorias": [
+      "Bebidas",
+      "Bebidas Alcohólicas",
+      "Almacén",
+      "Golosinas",
+      "Snacks",
+      "Cigarrillos",
+      "Limpieza",
+      "Perfumería",
+      "Lácteos",
+      "Panificados",
+      "Congelados",
+      "Enlatados",
+      "Fiambrería",
+      "Artículos Escolares",
+      "Recargas",
+      "Otros"
+      ]
+    }, {
+  "id": "ropa",
+  "nombre": "Tienda de Ropa",
+  "activo": true,
+  "orden": 3,
+  "categorias": [
+    "Remeras",
+    "Camisas",
+    "Pantalones",
+    "Jeans",
+    "Shorts",
+    "Buzos",
+    "Sweaters",
+    "Abrigos",
+    "Camperas",
+    "Vestidos",
+    "Polleras",
+    "Calzado",
+    "Ropa Deportiva",
+    "Ropa Interior",
+    "Pijamas",
+    "Medias",
+    "Accesorios",
+    "Gorras",
+    "Cinturones",
+    "Bolsos",
+    "Otros"
+  ]
+}
+    
+   
+  ]
+}
+
+Nota:
+- "SERVER_TIMESTAMP" es conceptual. En consola Firestore usa timestamp de servidor.
+
+[QUE ES INVALIDACION POR VERSION]
+- El frontend guarda en IndexedDB:
+  - catalogo (tipos + categorias)
+  - version local
+- Al iniciar:
+  1) lee cache local y muestra rapido
+  2) consulta version en Firebase
+  3) si version remota != version local, refresca catalogo y pisa cache
+
+Ejemplo:
+- local version = 1
+- Firebase version = 2
+- accion: actualizar cache local con los datos nuevos y guardar version = 2
+
+[QUIEN CREA/EDITA CATEGORIAS]
+- Vos (administrador del sistema), no los usuarios finales comunes.
+- Opciones:
+  1) Editar manualmente en Firebase Console (rapido al inicio).
+  2) Script seed (mas prolijo para repetir en otros entornos).
+  3) Futuro panel admin interno (si queres autogestion).
+
+[FASE 1 - REGISTRO FRONTEND]
+Archivos:
+- frontend/registro.html
+- frontend/js/registro.js
+
+Tareas:
+1) Agregar select "Tipo de negocio".
+2) Cargar opciones desde configuraciones/catalogo_negocios.
+3) Agregar opcion "Otra categoria" (id: custom).
+4) Si selecciona custom, mostrar input custom.
+5) Validar input custom en frontend:
+  - requerido solo en custom
+  - maximo 30 caracteres
+  - trim
+  - regex allowlist (letras, numeros, espacios, guion)
+6) Enviar en payload:
+  - businessTypeId
+  - businessTypeCustomLabel (si aplica)
+
+[FASE 2 - REGISTRO BACKEND]
+Archivo:
+- functions/src/registerEmployerProfile.js
+
+Tareas:
+1) Extender normalizePayload para:
+  - businessTypeId
+  - businessTypeCustomLabel
+2) Validacion backend:
+  - businessTypeId obligatorio
+  - si businessTypeId = custom -> customLabel obligatorio
+  - longitud <= 30
+  - trim + regex allowlist
+3) Validar tipo predefinido contra configuraciones/catalogo_negocios (activo=true).
+4) Guardar en Firestore (usuarios y tenants):
+  - businessTypeId
+  - businessTypeLabel (nombre final)
+
+[FASE 3 - SESION Y CONSUMO DE CATEGORIAS]
+Archivos:
+- frontend/js/auth.js
+- frontend/js/panel.js
+- frontend/js/products.js
+- frontend/js/config.js
+
+Tareas:
+1) Llevar businessTypeId y businessTypeLabel a currentSession.
+2) Resolver categorias efectivas segun businessTypeId.
+3) Reemplazar PRODUCT_CATEGORIES fija por categorias dinamicas.
+4) Validar altas/ediciones de producto contra categorias del tipo actual.
+
+[FASE 4 - INDEXEDDB CACHE]
+Archivos:
+- frontend/js/config.js
+- frontend/js/db.js
+- frontend/js/business_catalog.js (nuevo sugerido)
+
+Tareas:
+1) Agregar store en IndexedDB para catalogo (ej: businessCatalog).
+2) Subir DB_VERSION en frontend/js/config.js.
+3) Guardar:
+  - catalogo completo
+  - version
+  - syncedAt
+4) Flujo:
+  - leer cache primero
+  - renderizar rapido
+  - refrescar en background si cambia version
+
+[FASE 5 - USUARIOS ACTIVOS (YA EXISTENTES)]
+Problema:
+- Usuarios/tenants actuales no tienen businessTypeId.
+
+Estrategia recomendada:
+1) Compatibilidad inmediata:
+  - Si falta businessTypeId, usar fallback "kiosco" en frontend y backend.
+2) Migracion gradual:
+  - Actualizar tenants existentes con businessTypeId real.
+  - Opciones:
+    a) Manual por Firebase Console (pocos tenants).
+    b) Script de migracion (muchos tenants).
+3) Cuando todos tengan dato, mantener fallback solo como seguridad.
+
+Campos a agregar en tenants actuales:
+- businessTypeId: "kiosco" | "almacen" | "ropa" | "custom"
+- businessTypeLabel: "Kiosco" | "Almacen" | "Tienda de Ropa" | texto custom
+
+Campos a agregar en usuarios empleador (opcionales pero recomendados):
+- businessTypeId
+- businessTypeLabel
+
+[FASE 6 - REGLAS Y SEGURIDAD]
+Archivo:
+- firestore.rules
+
+Tareas:
+1) Permitir lectura de configuraciones/catalogo_negocios a usuarios autenticados.
+2) Bloquear escritura desde cliente comun en catalogo (solo admin/backend).
+3) Mantener escapeHtml al render de categorias/nombres.
+
+[CRITERIOS DE ACEPTACION]
+1) Registro con tipo normal funciona.
+2) Registro con custom funciona solo si texto <= 30.
+3) Validaciones fallan en frontend y backend para custom invalido.
+4) Productos usan categorias del tipo de negocio correcto.
+5) Al reiniciar app, usa cache local y refresca solo si cambia version.
+6) Usuarios existentes siguen funcionando con fallback mientras migras.
+
+[ORDEN RECOMENDADO]
+1) Crear doc Firebase configuraciones/catalogo_negocios.
+2) Frontend registro (select + custom input).
+3) Backend registerEmployerProfile (validacion + persistencia).
+4) Sesion/auth + categorias dinamicas en panel/products.
+5) IndexedDB cache + invalidacion por version.
+6) Migracion de usuarios activos.
+7) Reglas finales + pruebas.
