@@ -191,6 +191,51 @@ Campos a agregar en usuarios empleador (opcionales pero recomendados):
 - businessTypeId
 - businessTypeLabel
 
+[QUE AGREGAR A DOCS ACTUALES DE CLIENTES - CHECKLIST]
+Agregar estos campos en los documentos ya existentes:
+
+1) Tenant de cada cliente
+- Ruta: tenants/{tenantId}
+- Campos:
+  - businessTypeId: string (ej: "kioscoAlmacen", "ropa" o "custom")
+  - businessTypeLabel: string (ej: "Kiosco / Almacen", "Tienda de Ropa" o texto custom)
+
+2) Usuario empleador de cada cliente
+- Ruta: usuarios/{ownerUid}
+- Campos:
+  - businessTypeId: string (mismo valor que en su tenant)
+  - businessTypeLabel: string (mismo valor que en su tenant)
+
+3) Empleados (no obligatorio)
+- Ruta: empleados/{uid}
+- No es obligatorio agregar estos campos.
+- El sistema usa el tenant del empleador como fuente principal.
+
+[EJEMPLO TENANT ACTUALIZADO]
+Ruta:
+- tenants/ABC123
+
+Campos minimos nuevos:
+{
+  "businessTypeId": "kioscoAlmacen",
+  "businessTypeLabel": "Kiosco / Almacen"
+}
+
+[EJEMPLO USUARIO EMPLEADOR ACTUALIZADO]
+Ruta:
+- usuarios/OWNER_UID_1
+
+Campos minimos nuevos:
+{
+  "businessTypeId": "kioscoAlmacen",
+  "businessTypeLabel": "Kiosco / Almacen"
+}
+
+[REGLA PRACTICA PARA MIGRAR]
+- Si el cliente es kiosco/almacen clasico: usar "kioscoAlmacen".
+- Si es tienda de ropa: usar "ropa".
+- Si no encaja en ninguno: usar "custom" y completar businessTypeLabel.
+
 [FASE 6 - REGLAS Y SEGURIDAD]
 Archivo:
 - firestore.rules

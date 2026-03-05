@@ -204,6 +204,8 @@ export async function ensureCurrentUserProfile() {
     return { ok: false, error: "El perfil no tiene comercio valido." };
   }
 
+  const tenantProfile = await resolveTenantProfile(tenantId);
+
   // Si Auth ya marca email verificado, actualiza Firestore en segundo plano.
   if (role === "empleador" && profile.correoVerificado !== true && authUser.emailVerified === true) {
     await syncVerifiedEmailFlag();
@@ -251,8 +253,8 @@ export async function ensureCurrentUserProfile() {
     puedeVerStock: canViewStock,
     canViewStock,
     planActual: String(profile.plan || profile.planId || profile.planActual || "").trim().toLowerCase() || "prueba",
-    businessTypeId: resolveBusinessTypeId(profile),
-    businessTypeLabel: resolveBusinessTypeLabel(profile),
+    businessTypeId: resolveBusinessTypeId(profile, tenantProfile),
+    businessTypeLabel: resolveBusinessTypeLabel(profile, tenantProfile),
     username: profile.username || authUser.email || authUser.uid,
     loggedAt: new Date().toISOString()
   };
@@ -265,13 +267,21 @@ export async function ensureCurrentUserProfile() {
   return { ok: true, user: currentSession };
 }
 
-function resolveBusinessTypeId(profile) {
-  const value = String(profile?.businessTypeId || profile?.tipoNegocioId || "").trim().toLowerCase();
+function resolveBusinessTypeId(profile, tenantProfile = null) {
+  const profileValue = String(profile?.businessTypeId || profile?.tipoNegocioId || "").trim().toLowerCase();
+  const tenantValue = String(tenantProfile?.businessTypeId || tenantProfile?.tipoNegocioId || "").trim().toLowerCase();
+  const value = tenantValue || profileValue;
   return value || DEFAULT_BUSINESS_TYPE_ID;
 }
 
-function resolveBusinessTypeLabel(profile) {
-  return String(profile?.businessTypeLabel || profile?.tipoNegocioLabel || "").trim();
+function resolveBusinessTypeLabel(profile, tenantProfile = null) {
+  return String(
+    tenantProfile?.businessTypeLabel ||
+      tenantProfile?.tipoNegocioLabel ||
+      profile?.businessTypeLabel ||
+      profile?.tipoNegocioLabel ||
+      ""
+  ).trim();
 }
 
 function normalizeRole(value) {
@@ -302,6 +312,19 @@ async function resolveUserProfile(uid) {
   }
 
   return null;
+}
+
+async function resolveTenantProfile(tenantIdLike) {
+  const tenantId = String(tenantIdLike || "").trim();
+  if (!tenantId) return null;
+  try {
+    const tenantRef = doc(firestoreDb, FIRESTORE_COLLECTIONS.tenants, tenantId);
+    const snap = await getDoc(tenantRef);
+    if (!snap.exists()) return null;
+    return snap.data() || null;
+  } catch (_) {
+    return null;
+  }
 }
 
 async function syncVerifiedEmailFlag() {

@@ -456,6 +456,9 @@ async function loadBusinessTypes() {
 
   try {
     availableBusinessTypes = await getBusinessTypesForRegistration();
+    if (!availableBusinessTypes.length) {
+      throw new Error("No hay tipos de negocio configurados en Firebase.");
+    }
     const options = [
       '<option value="">Selecciona un tipo de negocio</option>',
       ...availableBusinessTypes.map(

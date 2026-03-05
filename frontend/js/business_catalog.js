@@ -51,8 +51,20 @@ export async function loadBusinessCatalog({ forceRefresh = false } = {}) {
 }
 
 export async function getBusinessTypesForRegistration() {
-  const catalog = await loadBusinessCatalog();
-  return normalizeBusinessTypes(catalog?.tiposNegocio).filter((row) => row.activo === true);
+  const remote = await loadCatalogFromFirestore({ injectDefault: false }).catch(() => null);
+  if (remote) {
+    await putBusinessCatalogCache({
+      version: remote.version,
+      catalog: remote,
+      syncedAt: Date.now()
+    }).catch(() => {});
+    memoryCatalog = remote;
+    return normalizeBusinessTypes(remote?.tiposNegocio).filter((row) => row.activo === true);
+  }
+
+  const cached = await getBusinessCatalogCache().catch(() => null);
+  const normalizedCached = normalizeCatalog(cached?.catalog || null, cached?.version, { injectDefault: false });
+  return normalizeBusinessTypes(normalizedCached?.tiposNegocio).filter((row) => row.activo === true);
 }
 
 export async function getCategoriesForBusinessTypeId(businessTypeIdLike) {
@@ -120,7 +132,9 @@ async function resolveCatalog({ forceRefresh = false } = {}) {
 async function refreshCatalogInBackground(localVersion) {
   const remote = await loadCatalogFromFirestore();
   if (!remote) return;
-  if (Number(remote.version || 0) === Number(localVersion || 0)) return;
+  const local = memoryCatalog;
+  const sameVersion = Number(remote.version || 0) === Number(localVersion || 0);
+  if (sameVersion && catalogsAreEquivalent(remote, local)) return;
 
   await putBusinessCatalogCache({
     version: remote.version,
@@ -130,21 +144,21 @@ async function refreshCatalogInBackground(localVersion) {
   memoryCatalog = remote;
 }
 
-async function loadCatalogFromFirestore() {
+async function loadCatalogFromFirestore({ injectDefault = true } = {}) {
   const ref = doc(firestoreDb, BUSINESS_CATALOG_DOC_PATH.collection, BUSINESS_CATALOG_DOC_PATH.docId);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
-    return normalizeCatalog(DEFAULT_CATALOG, DEFAULT_CATALOG.version);
+    return injectDefault ? normalizeCatalog(DEFAULT_CATALOG, DEFAULT_CATALOG.version) : normalizeCatalog({}, 0, { injectDefault: false });
   }
   const data = snap.data() || {};
-  return normalizeCatalog(data, data?.version);
+  return normalizeCatalog(data, data?.version, { injectDefault });
 }
 
-function normalizeCatalog(input, versionFallback) {
+function normalizeCatalog(input, versionFallback, { injectDefault = true } = {}) {
   const source = input && typeof input === "object" ? input : {};
   const tiposNegocio = normalizeBusinessTypes(source.tiposNegocio);
   const hasDefault = tiposNegocio.some((row) => row.id === DEFAULT_BUSINESS_TYPE_ID);
-  if (!hasDefault) {
+  if (injectDefault && !hasDefault && tiposNegocio.length === 0) {
     tiposNegocio.unshift({
       id: DEFAULT_BUSINESS_TYPE_ID,
       nombre: "Kiosco",
@@ -199,12 +213,29 @@ function normalizeCategories(source) {
 
 function findBusinessType(catalog, businessTypeId) {
   const rows = Array.isArray(catalog?.tiposNegocio) ? catalog.tiposNegocio : [];
-  return rows.find((row) => row.id === businessTypeId && row.activo !== false) || null;
+  const exact = rows.find((row) => row.id === businessTypeId && row.activo !== false);
+  if (exact) return exact;
+
+  // Compatibilidad para catálogos que usan "kioscoalmacen" como id base.
+  if (businessTypeId === DEFAULT_BUSINESS_TYPE_ID) {
+    const alias = rows.find((row) => row.id === "kioscoalmacen" && row.activo !== false);
+    if (alias) return alias;
+  }
+
+  return rows.find((row) => row.activo !== false) || null;
 }
 
 function normalizeVersion(value, fallback) {
   const parsed = Number(value ?? fallback ?? 0);
   if (!Number.isFinite(parsed) || parsed <= 0) return 1;
   return Math.trunc(parsed);
+}
+
+function catalogsAreEquivalent(a, b) {
+  if (!a || !b) return false;
+  const aTypes = Array.isArray(a.tiposNegocio) ? a.tiposNegocio : [];
+  const bTypes = Array.isArray(b.tiposNegocio) ? b.tiposNegocio : [];
+  if (aTypes.length !== bTypes.length) return false;
+  return JSON.stringify(aTypes) === JSON.stringify(bTypes);
 }
 
