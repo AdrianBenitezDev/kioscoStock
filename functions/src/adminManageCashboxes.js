@@ -87,6 +87,7 @@ function normalizeCashbox(input) {
   const saldoFinal = toNumberOrZero(row.total ?? row.totalCaja ?? row.finalBalance ?? row.saldoFinal);
   const responsable = String(row.usuarioNombre || row.responsable || row.owner || row.username || "").trim();
   const estado = cierreIso ? "cerrada" : "abierta";
+  const salesCount = resolveSalesCount(row);
 
   return {
     id: id || String(row.id || "").trim(),
@@ -95,8 +96,46 @@ function normalizeCashbox(input) {
     responsable: responsable || "-",
     estado,
     saldoFinal,
+    salesCount,
     _aperturaMs: aperturaIso ? Date.parse(aperturaIso) || 0 : 0
   };
+}
+
+function resolveSalesCount(row) {
+  const explicitCandidates = [
+    row?.salesCount,
+    row?.cantidadVentas,
+    row?.totalSales,
+    row?.ventasCount,
+    row?.cantidad_ventas
+  ];
+  for (const candidate of explicitCandidates) {
+    const parsed = parsePositiveCount(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  if (Array.isArray(row?.ventasIncluidas)) {
+    return row.ventasIncluidas.length;
+  }
+  if (Array.isArray(row?.ventas)) {
+    return row.ventas.length;
+  }
+  if (Array.isArray(row?.sales)) {
+    return row.sales.length;
+  }
+
+  return 0;
+}
+
+function parsePositiveCount(value) {
+  if (value === null || value === undefined) return null;
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed >= 0) return Math.trunc(parsed);
+  if (typeof value === "string") {
+    const match = value.match(/\d+/);
+    if (match) return Number(match[0]);
+  }
+  return null;
 }
 
 function toIsoString(value) {

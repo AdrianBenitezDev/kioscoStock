@@ -65,32 +65,19 @@ export async function closeTodayShift({ scope = "all" } = {}) {
   const { dateKey } = getTodayRangeIso();
   const scopeKey = getScopeKey(session, effectiveScope);
   const closureKey = buildClosureKey(session.tenantId, dateKey, scopeKey);
-  const canUseBackend = navigator.onLine && (await hasFirebaseSession());
-
-  if (!canUseBackend) {
-    const localResult = await loadScopedOpenSales(session, { scope: effectiveScope });
-    if (localResult.loadError) {
-      return { ok: false, error: localResult.loadError };
-    }
-    const localSales = localResult.sales;
-    const localSummary = summarizeSales(localSales);
-    if (localSummary.salesCount === 0) {
-      return { ok: false, error: "No hay ventas pendientes para cerrar caja." };
-    }
-
-    const provisional = buildLocalClosure({
-      session,
-      dateKey,
-      closureKey,
-      summary: localSummary,
-      synced: false
-    });
-    await putCashClosure(provisional);
-    const localIds = localSales
-      .map((sale) => String(sale.id || sale.idVenta || "").trim())
-      .filter(Boolean);
-    await deleteSalesAndItemsBySaleIds(localIds);
-    return { ok: true, summary: localSummary, provisional: true };
+  if (!navigator.onLine) {
+    return {
+      ok: false,
+      error: "Necesitas conexion para cerrar caja y generar backup en Firebase."
+    };
+  }
+  const firebaseSessionOk = await hasFirebaseSession();
+  if (!firebaseSessionOk) {
+    return {
+      ok: false,
+      error: "No hay sesion valida de Firebase para cerrar caja.",
+      requiresLogin: true
+    };
   }
 
   const localSales = await loadScopedOpenSalesFromLocal(session, { scope: effectiveScope });

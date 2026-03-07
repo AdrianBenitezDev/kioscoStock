@@ -1,0 +1,211 @@
+GUIoN VIDEO PUBLICITARIO STOCKFACIL (lectura guiada para grabacion de pantalla)
+
+Duracion sugerida: 8 a 12 minutos
+Perfil recomendado para demo completa: cuenta Empleador (asi se ven todas las funciones).
+
+==================================================
+1) APERTURA - PROBLEMA Y SOLUCION (0:00 a 0:25)
+==================================================
+QUE MOSTRAR:
+- Home de stockfacil.com.ar
+
+QUE DECIR:
+"Si manejas un kiosco o comercio y hoy controlas todo en cuaderno o Excel, StockFacil te simplifica todo en una sola web:
+registro de productos, ventas rapidas, stock en tiempo real, caja diaria y control de empleados."
+
+==================================================
+2) ACCESO PRINCIPAL (0:25 a 1:10)
+==================================================
+QUE MOSTRAR:
+- Boton "Registrar Negocio"
+- Boton "Acceder Empleador"
+- Formulario "Acceder Empleado"
+
+QUE DECIR:
+"Desde la pantalla principal tenemos tres entradas:
+1. Registrar un nuevo negocio.
+2. Acceder como empleador con cuenta Google, sin contrasena.
+3. Acceder como empleado con usuario y contrasena.
+El sistema valida permisos y estado de cuenta antes de entrar al panel."
+
+==================================================
+3) REGISTRO DE NEGOCIO (1:10 a 2:20)
+==================================================
+QUE MOSTRAR:
+- Formulario de registro completo
+- Selector de tipo de negocio
+- Opcion de categoria personalizada
+- Campo pais con autocompletado
+- Selector de provincia/estado
+- Tarjetas de planes
+
+QUE DECIR:
+"En el alta de negocio se cargan datos personales y datos del comercio.
+Se elige tipo de negocio y, si hace falta, se puede cargar una categoria personalizada.
+El pais tiene autocompletado y al seleccionarlo se cargan provincias o estados.
+Tambien se elige el plan desde tarjetas dinamicas.
+Al finalizar, el sistema crea el negocio y deja listo el proceso de verificacion de correo."
+
+==================================================
+4) VERIFICACION DE CORREO (2:20 a 2:45)
+==================================================
+QUE MOSTRAR:
+- Pantalla verificar-correo
+- Boton "Reenviar correo"
+
+QUE DECIR:
+"La verificacion de correo esta integrada.
+Si el correo no llega, se puede reenviar en un click.
+Hasta verificar la cuenta, el sistema no habilita el ingreso final al panel."
+
+==================================================
+5) VISTA GENERAL DEL PANEL (2:45 a 3:20)
+==================================================
+QUE MOSTRAR:
+- Encabezado con datos de sesion y plan
+- Boton Modo PC/Movil
+- Boton Sincronizar flotante
+- Navegacion por modos: NUEVO, VENTA, STOCK, CAJA, CONFIGURACION
+
+QUE DECIR:
+"Este es el panel central de StockFacil.
+Arriba vemos usuario, email y plan actual.
+Podemos alternar entre modo PC y modo movil.
+Tambien tenemos sincronizacion manual y control total por secciones: Nuevo, Venta, Stock, Caja y Configuracion."
+
+==================================================
+6) NUEVO PRODUCTO (3:20 a 4:20)
+==================================================
+QUE MOSTRAR:
+- Formulario de alta
+- Carga de codigo manual y por camara
+- Categoria
+- Precio de venta
+- Tipo de venta: unidad o gramos
+- Campo gramos por unidad (cuando corresponde)
+- Valor proveedor
+- Stock inicial
+- Botones "Crear producto" y "Sincronizar productos"
+
+QUE DECIR:
+"En Nuevo damos de alta productos con codigo de barras, nombre, categoria, precio y stock inicial.
+El codigo puede cargarse manualmente o escanearse con camara.
+El tipo de venta soporta unidad y gramos, ideal para productos fraccionados.
+Tambien se registra precio de compra a proveedor para calcular costos y ganancia.
+Si hay conectividad limitada, se guarda local y luego se sincroniza."
+
+==================================================
+7) MODULO VENTA (4:20 a 5:45)
+==================================================
+QUE MOSTRAR:
+- Campo de escaneo
+- Switch modo scanner / modo busqueda manual
+- Sugerencias de busqueda
+- Camara iniciar/detener
+- Tabla de venta actual (items, cantidad, subtotal, quitar)
+- Boton limpiar venta
+- Boton cobrar y modal de pago
+- Pago efectivo, virtual y mixto
+
+QUE DECIR:
+"En Venta podemos cargar productos por lector USB, por camara o por busqueda manual.
+El carrito muestra cada item, cantidades, subtotales y total en tiempo real.
+Al cobrar, elegimos forma de pago: efectivo, virtual o mixto.
+En pago mixto, el sistema calcula automaticamente la parte restante.
+Tambien soporta productos vendidos por gramos y descuenta stock de forma correcta.
+Si se corta internet, la venta puede quedar en pendiente con auditoria preventiva para mantener continuidad operativa."
+
+==================================================
+8) MODULO STOCK (5:45 a 7:00)
+==================================================
+QUE MOSTRAR:
+- Busqueda por codigo o nombre
+- Filtro por categoria
+- Escaneo para buscar
+- Tabla con niveles de stock
+- Edicion rapida de stock por fila
+- Boton flotante "Guardar Cambios"
+- Panel detalle de producto
+- Formulario editar detalle (nombre, stock, precios, categoria, tipo venta, gramos)
+- Boton eliminar producto (si se muestra en rol empleador)
+
+QUE DECIR:
+"En Stock tenemos busqueda rapida por nombre o codigo, filtro por categoria y escaneo para encontrar productos.
+La tabla resalta niveles bajos y permite ajustar stock en forma rapida.
+Los cambios pendientes se pueden guardar en lote con el boton flotante.
+Ademas, cada producto tiene panel de detalle y edicion completa:
+nombre, stock, precio de venta, precio de compra, categoria, tipo de venta y configuracion por gramos.
+El empleador tambien puede eliminar productos."
+
+==================================================
+9) MODULO CAJA Y TURNOS (7:00 a 8:40)
+==================================================
+QUE MOSTRAR:
+- Estado de turnos de empleados
+- Tarjetas resumen: ventas, productos, total a entregar
+- Detalle caja: inicio, efectivo, virtual
+- Costo del dia y ganancia del dia
+- Boton de privacidad de importes
+- Botones de acciones: cerrar mis ventas, iniciar turno empleado, terminar turno empleado, actualizar caja
+- Overlay iniciar turno (seleccion empleado + inicio de caja)
+- Tabla de cierres y tabla de ventas
+- Colapsar/expandir secciones
+- Botones de eliminacion de registros (si se muestran)
+
+QUE DECIR:
+"En Caja se concentra toda la operacion diaria.
+Vemos actividad del dia, total a entregar y el detalle de caja separado en inicio, efectivo y virtual.
+Tambien se muestran costo y ganancia del dia, con opcion de ocultar importes sensibles.
+El empleador puede cerrar sus ventas, iniciar turnos de empleados con monto inicial de caja, y finalizar turnos.
+Ademas hay historial de ventas y cierres, con estado de sincronizacion y herramientas de gestion de registros."
+
+==================================================
+10) CONFIGURACION Y ADMINISTRACION DE EMPLEADOS (8:40 a 9:40)
+==================================================
+QUE MOSTRAR:
+- Formulario alta empleado
+- Tabla de empleados
+- Checks de permisos:
+  puede crear productos
+  puede editar productos
+  puede ver stock
+- Accion eliminar empleado
+- Tabla de auditoria de ventas
+
+QUE DECIR:
+"En Configuracion, el empleador crea empleados con contrasena temporal y controla permisos finos:
+crear productos, editar productos y ver stock.
+Tambien puede eliminar empleados desde la misma pantalla.
+Y para trazabilidad, tenemos auditoria de ventas marcadas para revision."
+
+==================================================
+11) PLANES, OFFLINE Y PWA (9:40 a 10:30)
+==================================================
+QUE MOSTRAR:
+- Pantalla de planes (plan actual destacado)
+- Banner offline/sincronizacion (si aparece)
+- Boton flotante sincronizar
+- Boton "Instalar app" en movil (si esta visible)
+
+QUE DECIR:
+"StockFacil incluye gestion de planes con consulta en tiempo real y visualizacion del plan actual.
+Trabaja con enfoque offline-first: guarda datos localmente y sincroniza al reconectar.
+El boton de sincronizacion permite forzar envio de pendientes.
+Y en celular se puede instalar como app, gracias al modo PWA."
+
+==================================================
+12) CIERRE COMERCIAL (10:30 a 11:00)
+==================================================
+QUE MOSTRAR:
+- Regreso visual a panel/home
+
+QUE DECIR:
+"En resumen: StockFacil unifica altas de productos, ventas, stock, caja, turnos y administracion de empleados en una sola plataforma.
+Menos errores manuales, mas velocidad de atencion y mejores decisiones con datos reales.
+StockFacil: tu control de stock, simple."
+
+==================================================
+TIP RAPIDO PARA GRABAR
+==================================================
+- Graba la demo con un usuario Empleador para mostrar el 100% de funciones.
+- Si quieres un video mas corto, recorta bloques 4 y 11.
