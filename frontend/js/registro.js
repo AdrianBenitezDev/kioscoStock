@@ -341,7 +341,7 @@ function validatePayload(payload) {
     fieldErrors.telefono = "Telefono invalido. Solo numeros.";
   }
   if (!payload.nombreKiosco) {
-    fieldErrors.nombreKiosco = "Nombre del kiosco obligatorio.";
+    fieldErrors.nombreKiosco = "Nombre del Negocio obligatorio.";
   }
   if (!payload.pais) {
     fieldErrors.pais = "Pais obligatorio.";
