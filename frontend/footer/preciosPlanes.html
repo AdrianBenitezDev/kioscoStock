@@ -11,10 +11,15 @@
   <main class="page-wrap">
     <section class="page-card">
       <h1 class="page-title">Precios y planes</h1>
-      <p class="page-subtitle">Este espacio esta listo para publicar los planes comerciales.</p>
-      <p>Puedes integrar aqui la informacion de planes, beneficios y formas de contacto.</p>
-      <a class="back-link" href="../index.html">← Volver al inicio</a>
+      <p class="page-subtitle">Consulta en tiempo real de planes guardados en Firebase, sin iniciar sesion.</p>
+
+      <div id="plans-cards" class="plan-cards" aria-live="polite"></div>
+      <p id="plans-feedback" class="page-feedback" aria-live="polite">Cargando planes...</p>
+
+      <a class="back-link" href="../index.html">&larr; Volver al inicio</a>
     </section>
   </main>
+  <script type="module" src="preciosPlanes.js"></script>
 </body>
 </html>
+

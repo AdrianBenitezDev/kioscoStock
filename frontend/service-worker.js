@@ -17,6 +17,7 @@ const APP_SHELL = [
   "/footer/pages.css",
   "/footer/funciones.html",
   "/footer/preciosPlanes.html",
+  "/footer/preciosPlanes.js",
   "/footer/demo.html",
   "/footer/preguntasFrecuentes.html",
   "/js/pwa.js",
