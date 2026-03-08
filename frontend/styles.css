@@ -61,6 +61,14 @@ body.landing-page {
   text-align: center;
 }
 
+.landing-hero-logo {
+  width: clamp(88px, 16vw, 140px);
+  height: auto;
+  display: block;
+  margin: 0 auto 0.9rem;
+  filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.28));
+}
+
 .landing-hero-title {
   margin: 0;
   font-size: clamp(2.4rem, 6vw, 3.75rem);
