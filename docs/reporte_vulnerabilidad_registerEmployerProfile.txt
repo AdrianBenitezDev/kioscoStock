@@ -1,0 +1,60 @@
+﻿REPORTE TECNICO - registerEmployerProfile
+Fecha: 2026-03-10
+Archivo corregido: functions/src/registerEmployerProfile.js
+
+1) Resumen
+Se detecto un bypass de cobro en el flujo de alta. El endpoint registerEmployerProfile permitia crear usuarios/tenants con planes pagos sin exigir suscripcion confirmada en Mercado Pago.
+
+2) Vulnerabilidad detectada
+2.1) Bypass de suscripcion en planes pagos
+- Estado anterior: registerEmployerProfile aceptaba cualquier plan valido de la coleccion planes y llamaba finalizeEmployerRegistration sin objeto subscription.
+- Impacto: un cliente podia invocar directo el endpoint con un token valido y plan pago (por ejemplo admin), creando cuenta activa sin checkout ni webhook.
+
+2.2) Falta de validacion email autenticado vs payload
+- Estado anterior: el endpoint no verificaba que payload.email coincidiera con adminAuth.getUser(uid).email.
+- Impacto: inconsistencia de identidad y riesgo operativo (alta con email distinto al autenticado).
+
+3) Escenario de explotacion (estado anterior)
+1. Usuario autenticado obtiene su ID token.
+2. Hace POST directo a registerEmployerProfile con plan pago.
+3. El backend crea:
+   - usuarios/{uid}
+   - tenants/{tenantId}
+   - custom claims
+4. Resultado: plan pago activo sin cobrar.
+
+4) Correccion aplicada
+4.1) Validacion de identidad por email
+- Se agrego control obligatorio:
+  payload.email debe ser igual a authUser.email.
+- Si no coincide, responde 400 con fieldErrors.email.
+
+4.2) Alta directa solo para plan prueba
+- Se agrego guard clause en registerEmployerProfile:
+  si plan != "prueba", responde 400 y no registra.
+- Resultado: planes pagos ya no pueden activarse por alta directa.
+
+4.3) Defensa en profundidad en finalizeEmployerRegistration
+- Se agrego validacion interna:
+  si plan != "prueba" y subscription es nula/invalida, lanza error 400.
+- Resultado: incluso si otro flujo interno intenta activar plan pago sin suscripcion, se bloquea.
+
+5) Comportamiento actual esperado
+5.1) Plan prueba
+- Flujo permitido:
+  registro directo -> crea usuarios/tenants -> asigna claims.
+- No se crea checkout ni cobro.
+
+5.2) Plan pago
+- Flujo requerido:
+  createSubscriptionCheckout -> pending_registrations -> webhook/reconcile -> finalizeEmployerRegistration con subscription activa.
+- registerEmployerProfile ya no permite esta ruta.
+
+6) Riesgo residual y recomendaciones
+- Mantener bloqueada escritura cliente sobre campos sensibles en pending_registrations.
+- Auditar periodicamente logs de registerEmployerProfile, mercadoPagoWebhook y reconcileSubscriptions.
+- Opcional: agregar flags de trial (trialStartedAt, trialEndsAt, trialUsed) si se quiere limitar duracion/reuso del plan prueba.
+
+7) Estado final
+- Objetivo cumplido: los usuarios pueden registrarse en modo prueba sin cobro.
+- Bypass de cobro en registerEmployerProfile corregido.

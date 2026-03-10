@@ -10,6 +10,7 @@ const BUSINESS_CUSTOM_LABEL_MAX = 30;
 const CUSTOM_BUSINESS_TYPE_ID = "custom";
 const DEFAULT_BUSINESS_TYPE_ID = "kiosco";
 const DEFAULT_SUBSCRIPTION_PROVIDER = "mercadopago";
+const TRIAL_PLAN_ID = "prueba";
 
 const registerEmployerProfile = onRequest(async (req, res) => {
   if (!setCors(req, res)) {
@@ -43,6 +44,25 @@ const registerEmployerProfile = onRequest(async (req, res) => {
     const payload = await normalizeRegistrationPayload(req.body || {}, authUser.email || "");
     if (!payload.ok) {
       res.status(400).json({ ok: false, error: payload.error, fieldErrors: payload.fieldErrors || {} });
+      return;
+    }
+
+    const authEmail = String(authUser.email || "").trim().toLowerCase();
+    if (!authEmail || payload.data.email !== authEmail) {
+      res.status(400).json({
+        ok: false,
+        error: "El email debe coincidir con la cuenta autenticada.",
+        fieldErrors: { email: "Debe coincidir con la cuenta Google autenticada." }
+      });
+      return;
+    }
+
+    if (!isTrialPlan(payload.data.plan)) {
+      res.status(400).json({
+        ok: false,
+        error: "Para planes pagos debes completar la suscripcion antes del alta.",
+        fieldErrors: { plan: "Selecciona el plan prueba o completa la suscripcion." }
+      });
       return;
     }
 
@@ -203,6 +223,10 @@ async function finalizeEmployerRegistration({ uid, payloadData, subscription = n
   const negocioRef = db.collection("tenants").doc();
   const kioscoId = negocioRef.id;
   const subscriptionData = normalizeSubscriptionForWrite(subscription, now);
+  const trialPlan = isTrialPlan(payloadData.plan);
+  if (!trialPlan && !subscriptionData) {
+    throw { status: 400, message: "No se puede activar un plan pago sin suscripcion confirmada." };
+  }
 
   const userPayload = {
     uid,
@@ -278,6 +302,10 @@ function normalizeSubscriptionForWrite(subscriptionLike, nowTs) {
     currentPeriodEnd,
     updatedAt: nowTs
   };
+}
+
+function isTrialPlan(planIdLike) {
+  return String(planIdLike || "").trim().toLowerCase() === TRIAL_PLAN_ID;
 }
 
 async function loadAvailablePlans() {

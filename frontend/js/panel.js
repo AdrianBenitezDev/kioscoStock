@@ -758,7 +758,7 @@ function removeTenantEmployeeCacheLocal(uidLike) {
 async function syncTenantEmployeesFromCloud({ force = false } = {}) {
   if (!isEmployerRole(currentUser?.role)) return { ok: true, changed: false, skipped: true };
   const tenantId = String(currentUser?.tenantId || "").trim();
-  if (!tenantId) return { ok: false, changed: false, error: "No se pudo resolver tenant actual." };
+  if (!tenantId) return { ok: false, changed: false, error: "No se pudo identificar tu negocio actual." };
   if (!navigator.onLine) return { ok: true, changed: false, skipped: true };
 
   try {
@@ -817,7 +817,7 @@ async function refreshAuditPanel() {
   try {
     const tenantId = String(currentUser.tenantId || "").trim();
     if (!tenantId) {
-      dom.auditSalesTableBody.innerHTML = '<tr><td colspan="5">No se pudo resolver tenant actual.</td></tr>';
+      dom.auditSalesTableBody.innerHTML = '<tr><td colspan="5">No se pudo identificar tu negocio actual.</td></tr>';
       return;
     }
     const salesQuery = query(
@@ -1486,7 +1486,7 @@ function resetEmployeeShiftOverlayState() {
 async function loadEmployeeShiftCandidates() {
   if (!dom.employeeShiftEmployees) return;
   if (!currentUser?.tenantId) {
-    setEmployeeShiftFeedback("No se pudo resolver el tenant actual.");
+    setEmployeeShiftFeedback("No se pudo identificar tu negocio actual.");
     return;
   }
 

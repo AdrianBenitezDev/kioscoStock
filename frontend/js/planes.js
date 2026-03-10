@@ -14,7 +14,7 @@ let latestSubscriptionState = {
 
 init().catch((error) => {
   console.error("No se pudo inicializar la pantalla de planes:", error);
-  setFeedback("No se pudo cargar planes. Revisa permisos y conexion.");
+  setFeedback("No se pudieron cargar los planes. Revisa tu conexion e intentalo nuevamente.");
 });
 
 async function init() {
@@ -34,7 +34,7 @@ async function init() {
 
   const session = getCurrentSession();
   if (!session?.tenantId) {
-    setFeedback("No se pudo resolver el tenant del usuario.");
+    setFeedback("No se pudo identificar el negocio de tu cuenta.");
     return;
   }
 
@@ -52,20 +52,21 @@ async function init() {
 
   if (!plans.length) {
     plansCards.innerHTML = "";
-    setFeedback("No hay planes activos disponibles en Firebase.");
+    setFeedback("No hay planes disponibles en este momento.");
     return;
   }
 
   renderPlanCards(plans, currentPlanId);
   if (currentPlanId) {
-    const subscriptionStatus = normalizeSubscriptionStatus(tenantSnapshot.subscriptionStatus);
-    const extra =
-      subscriptionStatus && subscriptionStatus !== "unknown"
-        ? ` Estado suscripcion: ${subscriptionStatus}.`
-        : "";
-    setFeedback(`Plan actual: ${currentPlanId}.${extra}`);
+    const currentPlanLabel = resolvePlanLabel(plans, currentPlanId);
+    const subscriptionStatusLabel = getSubscriptionStatusLabel(tenantSnapshot.subscriptionStatus);
+    const summary = [`Plan actual: ${currentPlanLabel}.`];
+    if (subscriptionStatusLabel) {
+      summary.push(`Estado de suscripcion: ${subscriptionStatusLabel}.`);
+    }
+    setFeedback(summary.join(" "));
   } else {
-    setFeedback("No se pudo detectar el plan actual del usuario.");
+    setFeedback("No se pudo identificar el plan actual.");
   }
 }
 
@@ -105,8 +106,8 @@ async function resolveTenantSnapshot(session) {
       ).trim();
     }
   } catch (error) {
-    // permisos de tenants pueden variar por regla; usamos fallback con session.planActual
-    console.warn("No se pudo leer plan del tenant, se usa fallback de sesion:", error?.message || error);
+    // Los permisos del negocio pueden variar por regla; usamos fallback con session.planActual.
+    console.warn("No se pudo leer el plan del negocio, se usa fallback de sesion:", error?.message || error);
   }
 
   let currentPlanId = "";
@@ -225,7 +226,7 @@ function updateCancelButtonState({ subscriptionStatus, hasPreapproval }) {
   cancelSubscriptionBtn.disabled = !canCancel;
   cancelSubscriptionBtn.textContent = canCancel
     ? "Cancelar suscripcion"
-    : "No hay suscripcion cancelable";
+    : "No hay suscripcion activa para cancelar";
 }
 
 async function handleCancelSubscriptionClick() {
@@ -252,10 +253,10 @@ async function handleCancelSubscriptionClick() {
       subscriptionStatus: normalizeSubscriptionStatus(result?.subscriptionStatus || "cancelled"),
       hasPreapproval: true
     };
-    setFeedback(result?.alreadyCancelled ? "La suscripcion ya estaba cancelada." : "Suscripcion cancelada correctamente.");
+    setFeedback(result?.alreadyCancelled ? "Tu suscripcion ya estaba cancelada." : "Suscripcion cancelada correctamente.");
   } catch (error) {
     console.error("No se pudo cancelar la suscripcion:", error);
-    setFeedback(error?.message || "No se pudo cancelar la suscripcion.");
+    setFeedback(mapCancelSubscriptionError(error));
   } finally {
     cancelSubscriptionInProgress = false;
     updateCancelButtonState(latestSubscriptionState);
@@ -276,7 +277,20 @@ async function requestCancelSubscription(idToken) {
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok || !result?.ok) {
-    throw new Error(String(result?.error || "No se pudo cancelar la suscripcion."));
+    const backendError = String(result?.error || "").trim().toLowerCase();
+    if (response.status === 401) {
+      throw new Error("Tu sesion expiro. Vuelve a iniciar sesion.");
+    }
+    if (response.status === 403) {
+      throw new Error("No tienes permisos para cancelar esta suscripcion.");
+    }
+    if (response.status === 404 || backendError.includes("tenant")) {
+      throw new Error("No encontramos el negocio asociado a tu cuenta.");
+    }
+    if (backendError.includes("preapprovalid") || backendError.includes("suscripcion actual")) {
+      throw new Error("No hay una suscripcion activa para cancelar.");
+    }
+    throw new Error("No pudimos cancelar la suscripcion en este momento. Intenta nuevamente.");
   }
   return result;
 }
@@ -288,6 +302,39 @@ function getCancelSubscriptionEndpoint() {
 
 function normalizeSubscriptionStatus(valueLike) {
   return String(valueLike || "").trim().toLowerCase();
+}
+
+function getSubscriptionStatusLabel(statusLike) {
+  const status = normalizeSubscriptionStatus(statusLike);
+  if (!status) return "";
+  if (status === "active" || status === "authorized") return "Activa";
+  if (status === "pending" || status === "pending_authorization") return "Pendiente de confirmacion";
+  if (status === "cancelled") return "Cancelada";
+  if (status === "paused") return "Pausada";
+  if (status === "payment_rejected") return "Pago rechazado";
+  if (status === "failed" || status === "expired") return "Con incidencia";
+  return "En revision";
+}
+
+function resolvePlanLabel(plans, currentPlanId) {
+  const planId = normalizePlanId(currentPlanId);
+  const fromCatalog = Array.isArray(plans)
+    ? plans.find((plan) => normalizePlanId(plan?.id) === planId)
+    : null;
+  const title = String(fromCatalog?.titulo || "").trim();
+  if (title) return title;
+
+  if (planId === "prueba") return "Prueba";
+  if (planId === "standard") return "Estandar";
+  if (planId === "premium") return "Premium";
+  if (planId === "admin") return "Admin";
+  return "No definido";
+}
+
+function mapCancelSubscriptionError(errorLike) {
+  const message = String(errorLike?.message || "").trim();
+  if (!message) return "No pudimos cancelar la suscripcion. Intenta nuevamente.";
+  return message;
 }
 
 function escapeHtml(value) {
