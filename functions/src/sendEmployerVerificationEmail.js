@@ -7,7 +7,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://www.stockfacil.com.ar"
 ]);
 
-const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] },async (req, res) => {
+const sendEmployerVerificationEmail = onRequest({ secrets: ["RESEND_API_KEY"] }, async (req, res) => {
+  let targetEmail = "";
   if (!setCors(req, res)) {
     res.status(403).json({ ok: false, error: "Origen no permitido." });
     return;
@@ -42,6 +43,7 @@ const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] }
     }
     const profile = userSnap.data() || {};
     const email = String(profile.email || "").trim().toLowerCase();
+    targetEmail = email;
     if (!email) {
       res.status(400).json({ ok: false, error: "El usuario no tiene email valido." });
       return;
@@ -78,7 +80,12 @@ const sendEmployerVerificationEmail = onRequest( { secrets: ["RESEND_API_KEY"] }
     res.status(200).json({ ok: true, email });
   } catch (error) {
     console.error("sendEmployerVerificationEmail fallo:", error);
-    res.status(500).json({ ok: false, error: "No se pudo enviar el correo de verificacion.",detalle: error.message || error.toString(), email:email });
+    res.status(500).json({
+      ok: false,
+      error: "No se pudo enviar el correo de verificacion.",
+      detalle: error?.message || error?.toString?.() || "unknown_error",
+      email: targetEmail
+    });
   }
 });
 
