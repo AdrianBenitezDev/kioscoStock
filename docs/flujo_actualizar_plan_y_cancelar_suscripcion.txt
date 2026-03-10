@@ -1,0 +1,167 @@
+Objetivo
+- Definir implementacion tecnica para:
+  1) actualizar plan de suscripcion.
+  2) cancelar suscripcion.
+
+Contexto actual (base del proyecto)
+- Provider de suscripcion: Mercado Pago (preapproval).
+- Alta inicial: createSubscriptionCheckout + mercadoPagoWebhook + reconcileSubscriptions.
+- Persistencia: colecciones "tenants", "usuarios", "pending_registrations".
+- Email transaccional: sendSubscriptionStatusEmail (Resend).
+
+
+==============================
+BLOQUE A - ACTUALIZAR PLAN
+==============================
+
+1) Cambios de frontend (pantalla planes)
+- Mostrar plan actual y planes disponibles (ya existe).
+- Agregar boton por plan: "Cambiar a este plan" (excepto el plan actual).
+- Agregar modal de confirmacion:
+  - plan actual -> plan destino.
+  - precio nuevo.
+  - texto: "El cambio impacta tu suscripcion activa".
+- Al confirmar:
+  - deshabilitar botones.
+  - llamar endpoint backend "updateSubscriptionPlan".
+  - mostrar estado final y recargar datos de tenant.
+
+2) Endpoint backend nuevo
+- Crear function HTTP: updateSubscriptionPlan.
+- Seguridad:
+  - validar Bearer token Firebase.
+  - resolver uid, tenantId y rol.
+  - permitir solo "empleador" owner del tenant.
+- Input esperado:
+  - targetPlanId (string).
+- Validaciones:
+  - tenant existe.
+  - tenant.subscription.preapprovalId existe.
+  - plan destino existe en "planes" y activo=true.
+  - plan destino != plan actual.
+  - suscripcion no cancelada/expirada.
+
+3) Integracion Mercado Pago (actualizacion de preapproval)
+- Llamar API de Mercado Pago para modificar la preapproval activa.
+- Operacion sugerida:
+  - PUT /preapproval/{preapproval_id}
+  - campos minimos a actualizar:
+    - reason
+    - auto_recurring.transaction_amount
+    - auto_recurring.currency_id (si aplica)
+- Guardar request/response resumida en auditoria (sin datos sensibles).
+
+4) Persistencia Firestore al actualizar plan
+- Escribir en tenant:
+  - plan = targetPlanId
+  - subscription.planId = targetPlanId
+  - subscription.updatedAt = now
+  - subscription.status (mantener active si corresponde)
+- Escribir en usuario owner:
+  - plan = targetPlanId
+  - subscription.planId = targetPlanId
+  - updatedAt = now
+- Registrar en coleccion de auditoria (ej: tenant_subscription_events):
+  - eventType = plan_updated
+  - fromPlanId / toPlanId
+  - provider = mercadopago
+  - preapprovalId
+  - actorUid
+  - createdAt
+
+5) Email al confirmar cambio de plan
+- Enviar correo al owner + admin@stockfacil.com.ar:
+  - asunto: "StockFacil: plan actualizado"
+  - incluir plan anterior, nuevo plan, tenant, fecha.
+
+
+==============================
+BLOQUE B - CANCELAR SUSCRIPCION
+==============================
+
+1) Cambios de frontend (planes)
+- Habilitar el boton "Cancelar suscripcion".
+- Flujo UI:
+  - click -> modal de confirmacion fuerte:
+    - "Esta accion cancela renovaciones futuras".
+    - opcion confirmar/cerrar.
+  - confirmar -> llamar endpoint "cancelSubscription".
+  - respuesta ok -> bloquear acciones de cambio de plan y reflejar estado "cancelled".
+
+2) Endpoint backend nuevo
+- Crear function HTTP: cancelSubscription.
+- Seguridad:
+  - validar token Firebase.
+  - solo empleador owner del tenant.
+- Input:
+  - opcional: motivoCancelacion.
+- Validaciones:
+  - tenant y suscripcion existen.
+  - preapprovalId no vacio.
+  - si ya esta cancelada, retornar ok idempotente.
+
+3) Integracion Mercado Pago (cancelacion)
+- Llamar API:
+  - PUT /preapproval/{preapproval_id}
+  - body: { status: "cancelled" }
+- Si Mercado Pago responde OK:
+  - actualizar estado local.
+- Si falla:
+  - no cambiar estado local a cancelado.
+  - guardar error tecnico y responder error controlado.
+
+4) Persistencia Firestore al cancelar
+- tenant:
+  - subscription.status = "cancelled"
+  - subscription.cancelledAt = now
+  - subscription.cancelReason = motivo (si llega)
+  - subscription.updatedAt = now
+  - subscription.cancelledByUid = uid
+- usuario owner:
+  - subscriptionStatus = "cancelled"
+  - subscription.status = "cancelled"
+  - updatedAt = now
+- auditoria:
+  - eventType = subscription_cancelled
+  - providerStatus = cancelled
+  - preapprovalId
+  - actorUid
+  - createdAt
+
+5) Email al cancelar
+- Enviar correo al owner + admin@stockfacil.com.ar:
+  - asunto: "StockFacil: suscripcion cancelada"
+  - incluir fecha, tenant y estado final.
+
+
+==============================
+FLUJO E2E - CANCELAR SUSCRIPCION
+==============================
+
+1. Usuario empleador entra a planes.html autenticado.
+2. Front valida sesion y obtiene tenantId.
+3. Usuario presiona "Cancelar suscripcion" y confirma.
+4. Front llama cancelSubscription con Bearer token.
+5. Backend valida ownership del tenant.
+6. Backend obtiene preapprovalId desde tenant.subscription.
+7. Backend ejecuta PUT /preapproval/{id} status=cancelled en Mercado Pago.
+8. Backend actualiza Firestore (tenant + usuario + auditoria).
+9. Backend envia mail de confirmacion de cancelacion.
+10. Front recibe ok, muestra estado cancelado y deshabilita acciones.
+
+
+==============================
+NOTAS DE IMPLEMENTACION
+==============================
+
+- Idempotencia:
+  - cancelar o actualizar plan debe tolerar reintentos sin duplicar efectos.
+- Observabilidad:
+  - loggear registrationId/preapprovalId/tenantId en backend.
+- Seguridad:
+  - nunca exponer access token de Mercado Pago al frontend.
+- Reconciliacion:
+  - mantener reconcileSubscriptions para corregir estados ante fallos temporales.
+- Deploy:
+  - actualizar funciones y frontend juntos para evitar desfasajes.
+

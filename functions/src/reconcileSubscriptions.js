@@ -192,6 +192,7 @@ async function syncSubscriptionFromMercadoPago({ pending, preapprovalId }) {
   const hasApprovedPayment = Boolean(approvedPayment?.id);
 
   const preapprovalStatus = normalizeStatus(preapproval?.status, "");
+  const isAuthorizedPreapproval = preapprovalStatus === "authorized";
   const paymentStatus = normalizeStatus(latestPayment?.status, "");
   let subscriptionStatus = mapSubscriptionStatus({
     preapprovalStatus,
@@ -210,7 +211,7 @@ async function syncSubscriptionFromMercadoPago({ pending, preapprovalId }) {
   };
 
   let activated = false;
-  if (hasApprovedPayment && registrationStatus !== "activated") {
+  if ((hasApprovedPayment || isAuthorizedPreapproval) && registrationStatus !== "activated") {
     if (!pending.uid || !pending.payload) {
       registrationStatus = "failed";
       subscriptionStatus = "payment_rejected";
@@ -224,8 +225,12 @@ async function syncSubscriptionFromMercadoPago({ pending, preapprovalId }) {
             provider: MERCADO_PAGO_PROVIDER,
             status: "active",
             preapprovalId,
-            lastPaymentStatus: String(approvedPayment?.status || "approved").trim().toLowerCase(),
-            lastPaymentId: String(approvedPayment?.id || "").trim(),
+            lastPaymentStatus: String(
+              approvedPayment?.status || latestPayment?.status || (isAuthorizedPreapproval ? "authorized" : "")
+            )
+              .trim()
+              .toLowerCase(),
+            lastPaymentId: String(approvedPayment?.id || latestPayment?.id || "").trim(),
             currentPeriodStart: extractCurrentPeriodStart(preapproval),
             currentPeriodEnd: extractCurrentPeriodEnd(preapproval)
           }
@@ -234,7 +239,11 @@ async function syncSubscriptionFromMercadoPago({ pending, preapprovalId }) {
         registrationStatus = "activated";
         subscriptionStatus = "active";
         activated = true;
-        updatePayload.firstPaymentApprovedAt = Timestamp.now();
+        if (hasApprovedPayment) {
+          updatePayload.firstPaymentApprovedAt = Timestamp.now();
+        } else if (isAuthorizedPreapproval) {
+          updatePayload.subscriptionAuthorizedAt = Timestamp.now();
+        }
         updatePayload.activatedTenantId = String(finalizeResult?.kioscoId || "").trim();
         updatePayload.errorReason = "";
       } catch (activationError) {

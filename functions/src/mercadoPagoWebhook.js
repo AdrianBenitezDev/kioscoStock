@@ -57,6 +57,7 @@ const mercadoPagoWebhook = onRequest(
       const hasApprovedPayment = Boolean(approvedPayment?.id);
 
       const preapprovalStatus = String(resource.preapproval?.status || "").trim().toLowerCase();
+      const isAuthorizedPreapproval = preapprovalStatus === "authorized";
       let subscriptionStatus = mapSubscriptionStatus({
         preapprovalStatus,
         paymentStatus: String(resource.payment?.status || "").trim().toLowerCase(),
@@ -80,7 +81,7 @@ const mercadoPagoWebhook = onRequest(
         updatedAt: now
       };
 
-      if (hasApprovedPayment && registrationStatus !== "activated") {
+      if ((hasApprovedPayment || isAuthorizedPreapproval) && registrationStatus !== "activated") {
         if (!pending.uid || !pending.payload) {
           registrationStatus = "failed";
           subscriptionStatus = "payment_rejected";
@@ -95,8 +96,12 @@ const mercadoPagoWebhook = onRequest(
               provider: MERCADO_PAGO_PROVIDER,
               status: "active",
               preapprovalId: resource.preapprovalId || String(pending.preapprovalId || "").trim(),
-              lastPaymentStatus: String(approvedPayment.status || "").trim().toLowerCase(),
-              lastPaymentId: String(approvedPayment.id || "").trim(),
+              lastPaymentStatus: String(
+                approvedPayment?.status || resource.payment?.status || (isAuthorizedPreapproval ? "authorized" : "")
+              )
+                .trim()
+                .toLowerCase(),
+              lastPaymentId: String(approvedPayment?.id || resource.payment?.id || "").trim(),
               currentPeriodStart: extractCurrentPeriodStart(resource.preapproval),
               currentPeriodEnd: extractCurrentPeriodEnd(resource.preapproval)
             }
@@ -106,7 +111,11 @@ const mercadoPagoWebhook = onRequest(
           subscriptionStatus = "active";
           updatePayload.registrationStatus = registrationStatus;
           updatePayload.subscriptionStatus = subscriptionStatus;
-          updatePayload.firstPaymentApprovedAt = now;
+          if (hasApprovedPayment) {
+            updatePayload.firstPaymentApprovedAt = now;
+          } else if (isAuthorizedPreapproval) {
+            updatePayload.subscriptionAuthorizedAt = now;
+          }
           updatePayload.activatedTenantId = String(finalizeResult.kioscoId || "").trim();
           updatePayload.errorReason = "";
         }
@@ -396,7 +405,8 @@ function mapSubscriptionStatus({ preapprovalStatus, paymentStatus, hasApprovedPa
   const preapproval = String(preapprovalStatus || "").trim().toLowerCase();
   if (preapproval === "cancelled") return "cancelled";
   if (preapproval === "paused") return "paused";
-  if (preapproval === "authorized" || preapproval === "pending") return "pending_authorization";
+  if (preapproval === "authorized") return "active";
+  if (preapproval === "pending") return "pending_authorization";
   return "pending_authorization";
 }
 
