@@ -1,0 +1,94 @@
+﻿REPORTE TECNICO - Revision de firestore.rules
+Fecha: 2026-03-10
+Archivo revisado: firestore.rules
+
+1) Resumen ejecutivo
+Se detectaron problemas funcionales y de seguridad en reglas de Firestore. El principal problema actual es una llamada incorrecta a una funcion de validacion de tenant, ya reportada como warning durante deploy y con riesgo de bloquear escrituras esperadas.
+
+2) Hallazgos
+
+2.1) Hallazgo critico - Uso incorrecto de isTenantMemberByData
+Severidad: Alta
+Lineas afectadas:
+- firestore.rules:111
+- firestore.rules:112
+- firestore.rules:117
+- firestore.rules:123
+- firestore.rules:129
+
+Detalle:
+La funcion esta declarada como:
+- firestore.rules:16 -> function isTenantMemberByData(data)
+pero en las reglas se invoca sin argumento:
+- isTenantMemberByData()
+
+Impacto:
+- Puede provocar evaluacion incorrecta de permisos en create/update de:
+  - /productos/{docId}
+  - /ventas/{docId}
+  - /venta_items/{docId}
+  - /cierres/{docId}
+- Explica los warnings de compilacion observados en deploy.
+
+Riesgo real en tu proyecto:
+- Hoy el frontend principal opera mayormente sobre rutas /tenants/{tenantId}/..., por lo que el impacto visible puede ser parcial.
+- Aun asi, el error debe corregirse para evitar fallos silenciosos y deuda de seguridad.
+
+2.2) Hallazgo de seguridad - Lectura publica en /configuraciones
+Severidad: Media
+Linea afectada:
+- firestore.rules:149
+
+Detalle:
+- match /configuraciones/{docId} usa: allow read: if true;
+
+Impacto:
+- Cualquier persona no autenticada puede leer toda la coleccion configuraciones.
+- Si en el futuro se guardan parametros sensibles ahi, quedarian expuestos.
+
+Observacion:
+- Si solo se usa para catalogo publico (ejemplo catalogo_negocios), puede ser intencional.
+- Recomendado: restringir por docId y/o por autenticacion si el alcance crece.
+
+2.3) Hallazgo menor - Funcion sin uso
+Severidad: Baja
+Linea afectada:
+- firestore.rules:30
+
+Detalle:
+- function isEmpleador() no se utiliza.
+
+Impacto:
+- No rompe funcionalidad.
+- Genera warning y ruido de mantenimiento.
+
+3) Recomendaciones de correccion
+
+3.1) Corregir invocaciones de isTenantMemberByData
+- Reemplazar cada isTenantMemberByData() por isTenantMemberByData(request.resource.data)
+
+3.2) Endurecer lectura de /configuraciones
+Opciones:
+A) Mantener publico solo el catalogo:
+   match /configuraciones/{docId} {
+     allow read: if docId == "catalogo_negocios";
+     allow write: if false;
+   }
+B) Requerir autenticacion:
+   allow read: if isAuthenticated();
+
+3.3) Limpiar funcion sin uso
+- Eliminar isEmpleador() o usarla en reglas donde aplique.
+
+4) Plan de validacion despues del fix
+1. Ejecutar: firebase deploy --only firestore:rules
+2. Confirmar que desaparecen warnings de argumentos incorrectos.
+3. Probar en frontend:
+   - Lectura de planes y catalogo en registro
+   - Operaciones de productos/ventas segun rol
+4. Revisar que usuarios no autenticados no puedan leer docs no deseados.
+
+5) Conclusiones
+- Si, hay algo mal actualmente en firestore.rules.
+- El problema principal es funcional y de consistencia de seguridad (parametro faltante en funcion de tenant).
+- Recomiendo aplicar correccion inmediata y luego revisar alcance de lectura publica en configuraciones.

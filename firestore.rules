@@ -108,25 +108,25 @@ service cloud.firestore {
 
     match /productos/{docId} {
       allow read: if isTenantMemberByResource();
-      allow create: if isTenantMemberByData();
-      allow update, delete: if isTenantMemberByResource() && isTenantMemberByData();
+      allow create: if isTenantMemberByData(request.resource.data);
+      allow update, delete: if isTenantMemberByResource() && isTenantMemberByData(request.resource.data);
     }
 
     match /ventas/{docId} {
       allow read: if isTenantMemberByResource();
-      allow create: if isTenantMemberByData();
+      allow create: if isTenantMemberByData(request.resource.data);
       allow update, delete: if false;
     }
 
     match /venta_items/{docId} {
       allow read: if isTenantMemberByResource();
-      allow create: if isTenantMemberByData();
+      allow create: if isTenantMemberByData(request.resource.data);
       allow update, delete: if false;
     }
 
     match /cierres/{docId} {
       allow read: if isTenantMemberByResource();
-      allow create: if isTenantMemberByData();
+      allow create: if isTenantMemberByData(request.resource.data);
       allow update, delete: if false;
     }
 
