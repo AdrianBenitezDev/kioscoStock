@@ -32,6 +32,7 @@ const { createSubscriptionCheckout } = require("./src/createSubscriptionCheckout
 const { mercadoPagoWebhook } = require("./src/mercadoPagoWebhook");
 const { getSubscriptionStatus } = require("./src/getSubscriptionStatus");
 const { reconcileSubscriptions } = require("./src/reconcileSubscriptions");
+const { cancelSubscription } = require("./src/cancelSubscription");
 
 
 exports.bootstrapGoogleUser = bootstrapGoogleUser;
@@ -69,3 +70,4 @@ exports.createSubscriptionCheckout = createSubscriptionCheckout;
 exports.mercadoPagoWebhook = mercadoPagoWebhook;
 exports.getSubscriptionStatus = getSubscriptionStatus;
 exports.reconcileSubscriptions = reconcileSubscriptions;
+exports.cancelSubscription = cancelSubscription;

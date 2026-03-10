@@ -1,9 +1,16 @@
 import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-import { firestoreDb } from "../config.js";
+import { firebaseAuth, firebaseConfig, firestoreDb } from "../config.js";
 import { ensureCurrentUserProfile, getCurrentSession } from "./auth.js";
 
 const plansCards = document.getElementById("plans-cards");
 const plansFeedback = document.getElementById("plans-feedback");
+const cancelSubscriptionBtn = document.getElementById("cancel-subscription-btn");
+
+let cancelSubscriptionInProgress = false;
+let latestSubscriptionState = {
+  subscriptionStatus: "",
+  hasPreapproval: false
+};
 
 init().catch((error) => {
   console.error("No se pudo inicializar la pantalla de planes:", error);
@@ -12,6 +19,8 @@ init().catch((error) => {
 
 async function init() {
   if (!plansCards || !plansFeedback) return;
+  cancelSubscriptionBtn?.addEventListener("click", handleCancelSubscriptionClick);
+  updateCancelButtonState(latestSubscriptionState);
   setFeedback("Validando sesion...");
 
   const profileResult = await ensureCurrentUserProfile();
@@ -30,10 +39,16 @@ async function init() {
   }
 
   setFeedback("Cargando planes...");
-  const [plans, currentPlanId] = await Promise.all([
+  const [plans, tenantSnapshot] = await Promise.all([
     loadPlans(),
-    resolveCurrentPlanId(session)
+    resolveTenantSnapshot(session)
   ]);
+  const currentPlanId = tenantSnapshot.currentPlanId;
+  latestSubscriptionState = {
+    subscriptionStatus: tenantSnapshot.subscriptionStatus,
+    hasPreapproval: tenantSnapshot.hasPreapproval
+  };
+  updateCancelButtonState(latestSubscriptionState);
 
   if (!plans.length) {
     plansCards.innerHTML = "";
@@ -43,7 +58,12 @@ async function init() {
 
   renderPlanCards(plans, currentPlanId);
   if (currentPlanId) {
-    setFeedback(`Plan actual: ${currentPlanId}.`);
+    const subscriptionStatus = normalizeSubscriptionStatus(tenantSnapshot.subscriptionStatus);
+    const extra =
+      subscriptionStatus && subscriptionStatus !== "unknown"
+        ? ` Estado suscripcion: ${subscriptionStatus}.`
+        : "";
+    setFeedback(`Plan actual: ${currentPlanId}.${extra}`);
   } else {
     setFeedback("No se pudo detectar el plan actual del usuario.");
   }
@@ -56,25 +76,54 @@ async function loadPlans() {
 }
 
 async function resolveCurrentPlanId(session) {
+  const snapshot = await resolveTenantSnapshot(session);
+  return snapshot.currentPlanId;
+}
+
+async function resolveTenantSnapshot(session) {
   const candidates = [session?.planActual];
+  let subscriptionStatus = "";
+  let preapprovalId = "";
 
   try {
     const tenantRef = doc(firestoreDb, "tenants", String(session?.tenantId || "").trim());
     const tenantSnap = await getDoc(tenantRef);
     if (tenantSnap.exists()) {
       const tenant = tenantSnap.data() || {};
-      candidates.push(tenant?.plan, tenant?.planId, tenant?.planActual, tenant?.subscription?.planId, tenant?.suscripcion?.planId);
+      candidates.push(
+        tenant?.plan,
+        tenant?.planId,
+        tenant?.planActual,
+        tenant?.subscription?.planId,
+        tenant?.suscripcion?.planId
+      );
+      subscriptionStatus = normalizeSubscriptionStatus(
+        tenant?.subscriptionStatus || tenant?.subscription?.status || tenant?.suscripcion?.status || ""
+      );
+      preapprovalId = String(
+        tenant?.subscription?.preapprovalId || tenant?.suscripcion?.preapprovalId || ""
+      ).trim();
     }
   } catch (error) {
     // permisos de tenants pueden variar por regla; usamos fallback con session.planActual
     console.warn("No se pudo leer plan del tenant, se usa fallback de sesion:", error?.message || error);
   }
 
+  let currentPlanId = "";
   for (const value of candidates) {
     const normalized = normalizePlanId(value);
-    if (normalized) return normalized;
+    if (normalized) {
+      currentPlanId = normalized;
+      break;
+    }
   }
-  return "";
+
+  return {
+    currentPlanId,
+    subscriptionStatus,
+    preapprovalId,
+    hasPreapproval: Boolean(preapprovalId)
+  };
 }
 
 function normalizePlans(source) {
@@ -147,6 +196,98 @@ function toBoolean(value, fallback) {
 function setFeedback(message) {
   if (!plansFeedback) return;
   plansFeedback.textContent = String(message || "");
+}
+
+function updateCancelButtonState({ subscriptionStatus, hasPreapproval }) {
+  if (!cancelSubscriptionBtn) return;
+
+  const status = normalizeSubscriptionStatus(subscriptionStatus);
+  const isCancelled = status === "cancelled";
+  const isCancellableState =
+    status === "active" ||
+    status === "authorized" ||
+    status === "pending_authorization" ||
+    status === "pending";
+  const canCancel = Boolean(hasPreapproval && (isCancellableState || !status));
+
+  if (cancelSubscriptionInProgress) {
+    cancelSubscriptionBtn.disabled = true;
+    cancelSubscriptionBtn.textContent = "Cancelando suscripcion...";
+    return;
+  }
+
+  if (isCancelled) {
+    cancelSubscriptionBtn.disabled = true;
+    cancelSubscriptionBtn.textContent = "Suscripcion cancelada";
+    return;
+  }
+
+  cancelSubscriptionBtn.disabled = !canCancel;
+  cancelSubscriptionBtn.textContent = canCancel
+    ? "Cancelar suscripcion"
+    : "No hay suscripcion cancelable";
+}
+
+async function handleCancelSubscriptionClick() {
+  if (cancelSubscriptionInProgress) return;
+
+  const authUser = firebaseAuth.currentUser;
+  if (!authUser) {
+    setFeedback("Tu sesion expiro. Vuelve a iniciar sesion.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Vas a cancelar la suscripcion de este negocio. Se detendran futuras renovaciones. Deseas continuar?"
+  );
+  if (!confirmed) return;
+
+  cancelSubscriptionInProgress = true;
+  updateCancelButtonState(latestSubscriptionState);
+
+  try {
+    const idToken = await authUser.getIdToken();
+    const result = await requestCancelSubscription(idToken);
+    latestSubscriptionState = {
+      subscriptionStatus: normalizeSubscriptionStatus(result?.subscriptionStatus || "cancelled"),
+      hasPreapproval: true
+    };
+    setFeedback(result?.alreadyCancelled ? "La suscripcion ya estaba cancelada." : "Suscripcion cancelada correctamente.");
+  } catch (error) {
+    console.error("No se pudo cancelar la suscripcion:", error);
+    setFeedback(error?.message || "No se pudo cancelar la suscripcion.");
+  } finally {
+    cancelSubscriptionInProgress = false;
+    updateCancelButtonState(latestSubscriptionState);
+  }
+}
+
+async function requestCancelSubscription(idToken) {
+  const response = await fetch(getCancelSubscriptionEndpoint(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`
+    },
+    body: JSON.stringify({
+      reason: "cancelada_desde_planes"
+    })
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result?.ok) {
+    throw new Error(String(result?.error || "No se pudo cancelar la suscripcion."));
+  }
+  return result;
+}
+
+function getCancelSubscriptionEndpoint() {
+  const projectId = String(firebaseConfig?.projectId || "").trim();
+  return `https://us-central1-${projectId}.cloudfunctions.net/cancelSubscription`;
+}
+
+function normalizeSubscriptionStatus(valueLike) {
+  return String(valueLike || "").trim().toLowerCase();
 }
 
 function escapeHtml(value) {
